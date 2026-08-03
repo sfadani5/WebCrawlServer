@@ -1,10 +1,11 @@
 import { useState, useCallback } from 'react';
 import { useAdminDbApi } from './hooks/useAdminDbApi.js';
 import { useAdminSocket } from './hooks/useAdminSocket.js';
-import { MainLayout } from './components/layout/MainLayout.js';
-import { ClientsView } from './components/views/ClientsView.js';
-import { ControlConsoleView } from './components/views/ControlConsoleView.js';
-import { CrawlLogsView } from './components/views/CrawlLogsView.js';
+import { GcpMainLayout } from './components/layout/GcpMainLayout.js';
+import { GcpClientsView } from './components/views/GcpClientsView.js';
+import { GcpControlConsoleView } from './components/views/GcpControlConsoleView.js';
+import { GcpCrawlLogsView } from './components/views/GcpCrawlLogsView.js';
+import { FaviconGeneratorView } from './components/views/FaviconGeneratorView.js';
 import { ActiveTab } from './types/index.js';
 
 export default function App() {
@@ -15,16 +16,16 @@ export default function App() {
     clients,
     logs,
     setLogs,
-    fetchClients,
-    fetchLogs,
-    clearAllLogs,
-    purgeClientSession
+    loadClients,
+    loadLogs,
+    executeClearLogs,
+    executePurgeClient
   } = useAdminDbApi();
 
   const handleConnect = useCallback(() => {
-    fetchClients();
-    fetchLogs();
-  }, [fetchClients, fetchLogs]);
+    loadClients();
+    loadLogs();
+  }, [loadClients, loadLogs]);
 
   const { wsStatus, dispatchCommand } = useAdminSocket(setLogs, handleConnect);
 
@@ -34,33 +35,38 @@ export default function App() {
   };
 
   return (
-    <MainLayout
+    <GcpMainLayout
       wsStatus={wsStatus}
       clientCount={clients.length}
       activeTab={activeTab}
       onSelectTab={setActiveTab}
       onRefresh={() => {
-        fetchClients();
-        fetchLogs();
+        loadClients();
+        loadLogs();
       }}
+      onClearLogs={executeClearLogs}
     >
       {activeTab === 'clients' && (
-        <ClientsView
+        <GcpClientsView
           clients={clients}
+          logCount={logs.length}
           onSelectTarget={handleSelectTarget}
-          onPurgeClient={purgeClientSession}
+          onPurgeClient={executePurgeClient}
         />
       )}
       {activeTab === 'console' && (
-        <ControlConsoleView
+        <GcpControlConsoleView
           targetId={targetId}
           setTargetId={setTargetId}
           onDispatch={dispatchCommand}
         />
       )}
       {activeTab === 'logs' && (
-        <CrawlLogsView logs={logs} onClearLogs={clearAllLogs} />
+        <GcpCrawlLogsView logs={logs} onClearLogs={executeClearLogs} />
       )}
-    </MainLayout>
+      {activeTab === 'favicon' && (
+        <FaviconGeneratorView />
+      )}
+    </GcpMainLayout>
   );
 }

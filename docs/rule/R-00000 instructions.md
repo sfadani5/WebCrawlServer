@@ -30,6 +30,8 @@
 | R-00204 | docs/rule/R-00204 logging.md | 로그 기록 정책, 로그 분류 |
 | R-00205 | docs/rule/R-00205 auth.md | 페이지 인증, Basic Auth, bcryptjs, 자격증명 변경 API |
 | R-00300 | docs/rule/R-00300 admin-guidelines.md | 관리자 제어 기능 및 운영 UI 지침 |
+| R-00301 | docs/rule/R-00301 admin-development-guidelines.md | 관리자 UI 개발 및 모듈화 아키텍처 지침 |
+| R-00302 | docs/rule/R-00302 admin-ui-ux-guidelines.md | 관리자 UI/UX 디자인 및 시각적 일관성 가이드 |
 | R-00400 | docs/rule/R-00400 plugin-guidelines.md | 브라우저 플러그인 수집·통신 지침 |
 
 ## 번호 분류

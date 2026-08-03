@@ -1,78 +1,72 @@
 import { useState, useCallback } from 'react';
 import { Client, CrawlLog } from '../types/index.js';
+import { 
+  fetchClientsApi, 
+  fetchLogsApi, 
+  clearLogsApi, 
+  purgeClientApi 
+} from '../services/apiService.js';
 
 export function useAdminDbApi() {
   const [clients, setClients] = useState<Client[]>([]);
   const [logs, setLogs] = useState<CrawlLog[]>([]);
 
-  const fetchClients = useCallback(async () => {
+  // 백엔드 데이터베이스로부터 전체 클라이언트 목록 인출 및 상태 갱신
+  const loadClients = useCallback(async () => {
     try {
-      const res = await fetch('/api/db/clients');
-      const json = await res.json();
-      if (json.success) {
-        setClients(json.data);
-      }
+      const data = await fetchClientsApi();
+      setClients(data);
     } catch {
-      // API 오프라인 예외 처리
+      // API 예외 스킵
     }
   }, []);
 
-  const fetchLogs = useCallback(async () => {
+  // 백엔드 데이터베이스로부터 최신 수집 로그 목록 인출 및 상태 갱신
+  const loadLogs = useCallback(async () => {
     try {
-      const res = await fetch('/api/db/logs');
-      const json = await res.json();
-      if (json.success) {
-        setLogs(json.data);
-      }
+      const data = await fetchLogsApi();
+      setLogs(data);
     } catch {
-      // API 오프라인 예외 처리
+      // API 예외 스킵
     }
   }, []);
 
-  const clearAllLogs = useCallback(async () => {
+  // 데이터베이스 크롤링 로그 일괄 삭제 단행
+  const executeClearLogs = useCallback(async () => {
     if (!confirm('데이터베이스 내의 모든 크롤링 수집 로그를 완전 소거하시겠습니까?')) {
       return false;
     }
-    try {
-      const res = await fetch('/api/db/logs', { method: 'DELETE' });
-      const json = await res.json();
-      if (json.success) {
-        alert(json.message);
-        await fetchLogs();
-        return true;
-      }
-    } catch {
-      alert('서버 API가 오프라인 상태입니다.');
+    const success = await clearLogsApi();
+    if (success) {
+      alert('데이터베이스의 모든 수집 로그가 일괄 소거되었습니다.');
+      await loadLogs();
+      return true;
     }
     return false;
-  }, [fetchLogs]);
+  }, [loadLogs]);
 
-  const purgeClientSession = useCallback(async (clientId: string) => {
+  // 지정 클라이언트 기기 강제 추방 및 데이터 Cascade 연쇄 삭제 단행
+  const executePurgeClient = useCallback(async (clientId: string) => {
     if (!confirm(`대상 클라이언트 [${clientId}]를 강제 정화 격리하시겠습니까?`)) {
       return false;
     }
-    try {
-      const res = await fetch(`/api/db/clients/${clientId}`, { method: 'DELETE' });
-      const json = await res.json();
-      if (json.success) {
-        alert(json.message);
-        await fetchClients();
-        await fetchLogs();
-        return true;
-      }
-    } catch {
-      alert('서버 API가 오프라인 상태입니다.');
+    const success = await purgeClientApi(clientId);
+    if (success) {
+      alert('지정된 클라이언트 기기가 완전히 차단 제거되었습니다.');
+      await loadClients();
+      await loadLogs();
+      return true;
     }
     return false;
-  }, [fetchClients, fetchLogs]);
+  }, [loadClients, loadLogs]);
 
   return {
     clients,
     logs,
     setLogs,
-    fetchClients,
-    fetchLogs,
-    clearAllLogs,
-    purgeClientSession
+    loadClients,
+    loadLogs,
+    executeClearLogs,
+    executePurgeClient
   };
 }

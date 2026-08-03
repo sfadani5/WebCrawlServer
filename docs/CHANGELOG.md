@@ -34,3 +34,5 @@
 ## Unreleased
 
 - `docs/CHANGELOG/fix-eslint-no-explicit-any-20260803061300.md`: ESLint `no-explicit-any` 관련 타입 개선 및 askLogs/CHANGELOG 기록 가이드 강화
+- `docs/CHANGELOG/admin-ui-ux-update-20260803090000.md`: 관리자 UI/UX 가이드 지침에 따른 admin 화면 스타일 및 레이아웃 개선
+- `docs/rule/R-00302 admin-ui-ux-guidelines.md`: 관리자 UI/UX 디자인 가이드라인 문서 추가 및 admin UI 개발 지침 연계

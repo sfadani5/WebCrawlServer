@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, Dispatch, SetStateAction } from 'react';
 import { ConnectionStatus, CrawlLog } from '../types/index.js';
+import { createAdminSocket, sendSocketMessage } from '../services/socketService.js';
 
 export function useAdminSocket(
   setLogs: Dispatch<SetStateAction<CrawlLog[]>>,
@@ -9,8 +10,7 @@ export function useAdminSocket(
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    const wsUrl = 'ws://localhost:9600?clientId=admin-main&clientType=admin';
-    const socket = new WebSocket(wsUrl);
+    const socket = createAdminSocket();
     wsRef.current = socket;
 
     socket.onopen = () => {
@@ -23,6 +23,7 @@ export function useAdminSocket(
     socket.onmessage = (event) => {
       try {
         const message = JSON.parse(event.data);
+        // 실시간 수집 패킷 도착 시 상태 배열 최선두에 동적 추가 주입
         if (message.action === 'CRAWL_LOG') {
           setLogs((prev) => [
             {
@@ -48,22 +49,18 @@ export function useAdminSocket(
     };
   }, [setLogs, onConnectCallback]);
 
+  // 원격 제어 명령 패킷 검증 및 웹소켓 송출 릴레이
   const dispatchCommand = useCallback((targetId: string, action: string, payloadStr: string) => {
-    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-      alert('통신 채널이 오프라인 상태입니다.');
-      return false;
-    }
     try {
       const parsedPayload = JSON.parse(payloadStr);
-      const packet = {
-        senderId: 'admin-main',
-        targetId: targetId,
-        action: action,
-        payload: parsedPayload
-      };
-      wsRef.current.send(JSON.stringify(packet));
-      alert(`명령 송출 완료 [대상: ${targetId}] [지시: ${action}]`);
-      return true;
+      const sent = sendSocketMessage(wsRef.current, targetId, action, parsedPayload);
+      if (sent) {
+        alert(`명령 송출 완료 [대상: ${targetId}] [지시: ${action}]`);
+        return true;
+      } else {
+        alert('통신 채널이 오프라인 상태입니다.');
+        return false;
+      }
     } catch {
       alert('페이로드 데이터가 올바른 JSON 포맷이 아닙니다.');
       return false;
