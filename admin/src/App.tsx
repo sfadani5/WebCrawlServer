@@ -49,6 +49,7 @@ export default function App() {
       {activeTab === 'clients' && (
         <GcpClientsView
           clients={clients}
+          logs={logs}
           logCount={logs.length}
           onSelectTarget={handleSelectTarget}
           onPurgeClient={executePurgeClient}
