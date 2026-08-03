@@ -113,3 +113,20 @@ docs/askLogs/*
 docs/CHANGELOG/*
 docs/decision/*
 
+.gitignore
+.replit
+.treeignore
+replit.md
+docs/ask.md
+docs/CHANGELOG.md
+docs/todo.history.md
+docs/todo.md
+WebCrawlServer.code-workspace
+WebCrawlServer.instructions.md
+WebCrawlServer.sources.md
+server/dist/*
+plugins/basic-plugin/dist/
+*.png
+*.jpg
+*.ico
+
