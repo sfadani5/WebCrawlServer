@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "기본 검증용 수집 플러그인",
+  "version": "1.0.0",
+  "description": "WebCrawlServer 분산 크롤링 실시간 연동 확장 프로그램",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  }
+}
