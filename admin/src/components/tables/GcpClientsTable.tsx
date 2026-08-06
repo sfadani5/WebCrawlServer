@@ -15,10 +15,18 @@ export function GcpClientsTable({
   onPurgeClient,
   onOpenDomModal
 }: GcpClientsTableProps) {
-  // 클라이언트별 가장 최신의 크롤링 로그 인출
   const getLatestLogForClient = (clientId: string): CrawlLog | undefined => {
     return logs.find((l) => l.client_id === clientId);
   };
+
+  // 안전한 ISO 문자열 / 타침스탬프 날짜 변환 함수
+  const formatConnectedDate = (dateStr: string): string => {
+    if (!dateStr) return 'N/A';
+    const parsedNum = Number(dateStr);
+    const date = isNaN(parsedNum) ? new Date(dateStr) : new Date(parsedNum);
+    return isNaN(date.getTime()) ? '알 수 없는 시각' : date.toLocaleString();
+  };
+
   return (
     <div className="bg-[#202124] border border-gray-800 rounded shadow-sm overflow-hidden select-text">
       <div className="px-4 py-3 border-b border-gray-800 flex justify-between items-center bg-[#28292c]">
@@ -35,13 +43,14 @@ export function GcpClientsTable({
               <th className="p-3">클라이언트 타입</th>
               <th className="p-3">상태</th>
               <th className="p-3">수신 데이터 알림</th>
-              <th className="p-3">연결 시간</th>
+              <th className="p-3">최초 등록/연결 시간</th>
               <th className="p-3 text-right">작업</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-800 text-gray-200 font-mono">
             {clients.map((client) => {
               const latestLog = getLatestLogForClient(client.client_id);
+              const isOnline = !!client.is_online;
 
               return (
                 <tr key={client.client_id} className="hover:bg-[#2d2e31] transition">
@@ -54,18 +63,28 @@ export function GcpClientsTable({
                       {client.client_type}
                     </span>
                   </td>
-                  <td className="p-3">
-                    <span className="inline-flex items-center gap-2 bg-emerald-900/40 text-emerald-300 text-[11px] px-2 py-1 rounded border border-emerald-700/40">
-                      <span className="h-2.5 w-2.5 rounded-full bg-emerald-400"></span>
-                      연결됨
-                    </span>
+
+                  {/* 실시간 연결 여부 상태 배지 */}
+                  <td className="p-3 font-sans">
+                    {isOnline ? (
+                      <span className="inline-flex items-center gap-1.5 bg-emerald-900/40 text-emerald-300 text-[11px] px-2 py-0.5 rounded border border-emerald-700/40 font-semibold">
+                        <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        연결됨 (온라인)
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 bg-slate-800 text-slate-400 text-[11px] px-2 py-0.5 rounded border border-slate-700">
+                        <span className="h-2 w-2 rounded-full bg-slate-500"></span>
+                        연결 끊김 (과거 기록)
+                      </span>
+                    )}
                   </td>
-                  {/* 수신받은 데이터 알림 버튼 영역 */}
+
+                  {/* 수신받은 데이터 알림 버튼 */}
                   <td className="p-3">
                     {latestLog ? (
                       <button
                         onClick={() => onOpenDomModal(client.client_id, latestLog)}
-                        className="inline-flex items-center gap-1.5 bg-[#1A73E8] hover:bg-[#185abc] text-white text-[11px] font-sans font-semibold px-2.5 py-1 rounded transition shadow-sm animate-bounce cursor-pointer"
+                        className="inline-flex items-center gap-1.5 bg-[#1A73E8] hover:bg-[#185abc] text-white text-[11px] font-sans font-semibold px-2.5 py-1 rounded transition shadow-sm cursor-pointer"
                       >
                         <span className="material-symbols-outlined text-xs">notifications_active</span>
                         수신받은 데이터 보기
@@ -74,9 +93,12 @@ export function GcpClientsTable({
                       <span className="text-slate-500 text-[11px] font-sans">수신 데이터 없음</span>
                     )}
                   </td>
-                  <td className="p-3 text-slate-500 text-[12px]">
-                    {new Date(parseInt(client.connected_at) || Date.now()).toLocaleString()}
+
+                  {/* 수정된 정상 날짜 파싱 출력 */}
+                  <td className="p-3 text-slate-400 text-[12px]">
+                    {formatConnectedDate(client.connected_at)}
                   </td>
+
                   <td className="p-3 text-right font-sans">
                     <div className="flex justify-end gap-2">
                       <button
@@ -88,6 +110,7 @@ export function GcpClientsTable({
                       <button
                         onClick={() => onPurgeClient(client.client_id)}
                         className="bg-red-900/60 hover:bg-red-800 text-xs px-2.5 py-0.5 rounded text-red-200 transition border border-red-800"
+                        title="DB에서 삭제 및 영구 추방"
                       >
                         Purge
                       </button>
@@ -100,7 +123,7 @@ export function GcpClientsTable({
         </table>
         {clients.length === 0 && (
           <div className="p-8 text-center text-gray-500 text-sm">
-            No active crawler nodes found
+            등록된 수집 노드 인스턴스가 없습니다.
           </div>
         )}
       </div>

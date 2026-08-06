@@ -1,5 +1,3 @@
-# R-00000 docs/rule/R-00000 instructions.md
-
 본 문서는 `WebCrawlServer` 프로젝트의 규칙 문서 인덱스입니다. 각 규칙 문서의 역할과 적용 범위를 안내하며, 신규 규칙 문서 추가 시 반드시 함께 갱신해야 합니다.
 
 ## 사용 방법
@@ -32,21 +30,27 @@
 | R-00300 | docs/rule/R-00300 admin-guidelines.md | 관리자 제어 기능 및 운영 UI 지침 |
 | R-00301 | docs/rule/R-00301 admin-development-guidelines.md | 관리자 UI 개발 및 모듈화 아키텍처 지침 |
 | R-00302 | docs/rule/R-00302 admin-ui-ux-guidelines.md | 관리자 UI/UX 디자인 및 시각적 일관성 가이드 |
-| R-00400 | docs/rule/R-00400 plugin-guidelines.md | 브라우저 플러그인 수집·통신 지침 |
+| R-00400 | docs/rule/R-00400 plugin-guidelines.md | 플러그인 통합 지침, 전체 맥락 및 하위 문서 인덱스 |
+| R-00410 | docs/rule/R-00410 plugin-architecture.md | 플러그인 모듈화 아키텍처, 계층 구조 및 파일 분리 지침 |
+| R-00420 | docs/rule/R-00420 plugin-communication.md | WebSocket 연동, 무중단 재연결 및 크롬 메시징 가드 지침 |
+| R-00430 | docs/rule/R-00430 plugin-crawling.md | DOM 크롤링, 콘텐츠 스크립트(`content.ts`) 및 메타 수집 지침 |
+| R-00440 | docs/rule/R-00440 plugin-ui-ux.md | 팝업 UI/UX 디자인, 탭 네비게이션 및 마우스 드래그 크기 조절 지침 |
+| R-00450 | docs/rule/R-00450 plugin-build-env.md | Vite define 기반 빌드 타임 상수 주입 및 설정 지침 |
+| R-00460 | docs/rule/R-00460 plugin-manifest-permissions.md | Manifest V3, 권한 관리 및 JSON 주석 금지 지침 |
 
 ## 번호 분류
 
 - R-001xx: 통합 지침 / 개발 방향
 - R-002xx: 시스템 / 서버
 - R-003xx: 관리자 UI
-- R-004xx: 플러그인
+- R-004xx: 플러그인 (10단위 확장형)
 - R-005xx: 기록·운영·보관
 
 ## 신규 규칙 문서 추가
 
 - 새로운 규칙 문서를 추가할 때는 반드시 본 문서와 `AGENTS.md`의 Rule Registry 표를 동시에 갱신합니다.
 - 두 표가 불일치할 경우 `AGENTS.md`가 우선합니다.
-- 신규 문서 번호는 분류 블록에 따라 부여합니다. 예: 관리자 UI는 `R-00300`대, 플러그인은 `R-00400`대, 기록·운영·보관은 `R-00500`대를 사용합니다.
+- 신규 문서 번호는 분류 블록에 따라 부여합니다. 예: 관리자 UI는 `R-00300`대, 플러그인은 `R-00400`대(10단위 간격), 기록·운영·보관은 `R-00500`대를 사용합니다.
 
 ## AI 지침 문서 번호 부여 원칙
 
@@ -55,10 +59,10 @@
   - `R-001xx`: 통합 지침 / 개발 방향
   - `R-002xx`: 시스템 / 서버
   - `R-003xx`: 관리자 UI
-  - `R-004xx`: 플러그인
+  - `R-004xx`: 플러그인 (10단위 확장형)
   - `R-005xx`: 기록·운영·보관
 - AI 지침 문서 번호는 중복되지 않도록 기존 Rule Registry를 확인한 후, 블록 내 다음 사용 가능한 번호를 선택합니다.
-- 문서 생성 시 제목과 파일명 모두에 `R-00N` 번호를 포함해야 합니다. 예: `# R-00300 docs/rule/R-00300 admin-guidelines.md`.
+- 문서 생성 시 제목과 파일명 모두에 `R-00N` 번호를 포함해야 합니다. 예: `# R-00400 docs/rule/R-00400 plugin-guidelines.md`.
 - AI 지침 문서가 새로 추가되면 `AGENTS.md`와 `R-00000 instructions.md` 모두에 동일한 등록 항목을 반드시 추가하고, 번호 체계가 올바른지 검증합니다.
 
 ## 문서 기준
@@ -66,6 +70,3 @@
 - 본 문서에서는 규칙 문서의 위치와 역할만 정의합니다.
 - 세부 규칙은 각 `docs/rule/*.md` 문서를 따릅니다.
 - 프로젝트 전체 문서 우선순위는 `AGENTS.md` > `docs/rule/*.md` > `docs/ask.md` > `docs/todo.md` > `README.md`입니다.
-
-
-

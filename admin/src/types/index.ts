@@ -2,6 +2,7 @@ export interface Client {
   client_id: string;
   client_type: string;
   connected_at: string;
+  is_online?: boolean; // 백엔드 실시간 소켓 가용 플래그
 }
 
 export interface CrawlLog {
@@ -11,14 +12,13 @@ export interface CrawlLog {
   timestamp: number;
 }
 
-// 실시간 웹소켓 송수신 통신 패킷 표준 인터페이스
 export interface WebSocketMessage<T = unknown> {
   senderId: string;
-  targetId?: string | 'ALL';
+  targetId?: string | "ALL";
   action: string;
   payload: T;
 }
 
-export type ConnectionStatus = 'CONNECTED' | 'DISCONNECTED';
+export type ConnectionStatus = "CONNECTED" | "DISCONNECTED";
 
-export type ActiveTab = 'clients' | 'console' | 'logs' | 'favicon';
+export type ActiveTab = "clients" | "console" | "logs" | "favicon";

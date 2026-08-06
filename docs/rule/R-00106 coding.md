@@ -1,27 +1,69 @@
 # R-00106 docs/rule/R-00106 coding.md
 
-`WebCrawlServer`는 ESM 기반 TypeScript 코드를 기본으로 합니다. 본 문서는 코드 작성 규칙과 스타일 가이드를 정의합니다.
+본 문서는 `WebCrawlServer` 프로젝트의 코드 작성 규칙, 소스 파일 헤더 표기 규정 및 코드 문서화(JSDoc/주석) 표준 지침입니다.
 
-## 코드 규칙
+---
 
-- JavaScript 대신 TypeScript를 사용합니다.
-- 모듈 시스템은 ESM(`import` / `export`)을 사용합니다.
-- CommonJS(`require`, `module.exports`)는 사용하지 않습니다.
-- 타입을 명시적으로 정의하고, 가능한 경우 `any` 사용을 최소화합니다.
-- Promise와 비동기 함수는 `async/await`로 명확히 처리합니다.
+## 1. 기본 코드 표준
 
-## 파일 작성
+1.1 **TypeScript 사용**: 모든 코드는 JavaScript 대신 TypeScript 사용을 원칙으로 합니다.  
+1.2 **ESM 규격 준수**: 모듈 시스템은 ESM(`import` / `export`)을 사용하며, CommonJS(`require`, `module.exports`) 사용은 금지합니다.  
+1.3 **타입 엄격성**: 타입을 명시적으로 정의하며, `any` 타입 사용을 금지합니다. (외부 라이브러리 반환값 등 불가피한 경우 `unknown`과 타입 어서션을 활용)  
+1.4 **비동기 처리**: Promise 연산 및 비동기 함수는 `async/await` 패턴으로 작성합니다.  
 
-- 서버 코드: `.ts`
-- React 컴포넌트: `.tsx`
-- 설정 파일: `.mts`, `.json`
-- 문서 파일: `.md`
+---
 
-## 예외 처리
+## 2. 소스 파일 헤더 표기 규정 (필수)
 
-- 오류 처리는 상세 메시지와 함께 로그를 남겨야 합니다.
-- 불필요한 에러 무시는 피합니다.
-- 입력 검증이 필요한 경우 적절한 방어 코드를 작성합니다.
+모든 소스 코드(.ts, .tsx, .js, .css 등) 및 문서 출력물의 최상단 첫 번째 라인에는 **상대 파일 경로와 파일 이름**을 주석 형태로 반드시 표기해야 합니다.
 
+```typescript
+// plugins/basic-plugin/src/popup.tsx
+```
 
+---
 
+## 3. 기능 및 식별자 상세 주석 표준
+
+코드 가독성과 유지보수성을 제고하기 위해 주요 기능, 함수, 클래스, 메서드, 변수 및 상상에 대해 상세한 한글 주석을 반드시 작성해야 합니다.
+
+### 3.1 함수 및 클래스 주석 표준 (JSDoc)
+모든 함수, 메서드, 클래스 상단에는 수행 기능, 매개변수(`@param`), 반환값(`@returns`) 및 예외 사항을 설명하는 JSDoc 형태의 한글 주석을 작성합니다.
+
+```typescript
+/**
+ * 지정된 타깃 클라이언트에 원격 수집 지시 제어 명령 패킷을 웹소켓으로 송출합니다.
+ *
+ * @param socket - 활성화된 웹소켓 인스턴스 참조
+ * @param targetId - 수신 타깃 기기 ID (ALL 입력 시 전체 브로드캐스트)
+ * @param action - 지시 액션 식별자 (예: 'CRAWL_START', 'CRAWL_STOP')
+ * @param payload - 바디 페이로드 객체
+ * @returns 메시지 송출 성공 여부 (true / false)
+ */
+export function sendSocketMessage(
+  socket: WebSocket | null,
+  targetId: string,
+  action: string,
+  payload: unknown
+): boolean {
+  // ... 구현 코드
+}
+```
+
+### 3.2 변수 및 상수 주석 표준
+모든 전역 상수, 빌드 주입 환경변수, 주요 상태 변수 선언부에는 변수의 역할, 단위, 기본값 및 지정 가능한 값의 범위를 상세 주석으로 명시합니다.
+
+```typescript
+/** 팝업 창의 초기 기본 가로 너비 (단위: px, 기본값: 360, 범위: 320~600) */
+export const POPUP_WIDTH: number = 360;
+
+/** 백엔드 통합 웹소켓 및 REST API 서비스 포트 번호 (기본값: 9600) */
+export const SERVER_PORT: number = 9600;
+```
+
+---
+
+## 4. 예외 처리 및 로그 가드
+
+4.1 **상세 에러 기록**: 예외 발생 시 단순 무시(`catch {}`)를 금지하며, 발생 원인과 메시지를 로그로 남겨야 합니다.  
+4.2 **방어적 프로그래밍**: 외부 입력값 및 API 응답 데이터에 대한 검증 구문을 작성하여 앱 크래시를 방지합니다.  

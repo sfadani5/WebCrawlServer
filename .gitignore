@@ -19,6 +19,7 @@ yarn-error.log*
 databases/*.db
 databases/*.db-journal
 databases/*.db-wal
+databases/*.db-shm
 *.sqlite
 *.sqlite3
 

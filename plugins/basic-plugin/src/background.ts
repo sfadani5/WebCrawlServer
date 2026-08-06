@@ -1,4 +1,7 @@
-// 브라우저 로컬 영구 적재 영역에서 UUID를 검출하거나 신규 자동 발급 보존하는 함수
+// plugins/basic-plugin/src/background.ts
+
+import { PLUGIN_CONFIG, getWebSocketUrl } from "./config/pluginConfig.js";
+
 async function getOrCreateClientId(): Promise<string> {
   return new Promise((resolve) => {
     chrome.storage.local.get(["clientId"], (result) => {
@@ -17,12 +20,18 @@ async function getOrCreateClientId(): Promise<string> {
 let socket: WebSocket | null = null;
 let reconnectTimer: number | null = null;
 
-// 백엔드 API 서버(포트 9600)와 영속성 실시간 통신망을 수립하는 주 가동 함수
+// 빌드 주입 상수를 이용하여 서버 통신망 수립
 async function connectToServer() {
-  if (socket && socket.readyState === WebSocket.OPEN) return;
+  if (
+    socket &&
+    (socket.readyState === WebSocket.OPEN ||
+      socket.readyState === WebSocket.CONNECTING)
+  ) {
+    return;
+  }
 
   const clientId = await getOrCreateClientId();
-  const wsUrl = `ws://localhost:9600?clientId=${clientId}&clientType=plugin`;
+  const wsUrl = getWebSocketUrl(clientId);
 
   socket = new WebSocket(wsUrl);
 
@@ -31,7 +40,6 @@ async function connectToServer() {
       clearTimeout(reconnectTimer);
       reconnectTimer = null;
     }
-    // 연결 이벤트 발생 시 서버로 정형 헬로 패킷 발송
     const helloPacket = {
       senderId: clientId,
       targetId: "ALL",
@@ -41,30 +49,25 @@ async function connectToServer() {
     socket?.send(JSON.stringify(helloPacket));
   };
 
-  // 관리자 대시보드 웹으로부터 서버를 거쳐 유입되는 중계 원격 수집 지시 제어 수용
   socket.onmessage = (event) => {
     try {
       const packet = JSON.parse(event.data);
-
-      // 관리자의 원격 수집 개시 지시가 도달할 시 수행할 로직
       if (packet.action === "CRAWL_START") {
-        // activeTab에 강제 수집기 침투 주입 개시
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
           const activeTab = tabs[0];
           if (activeTab && activeTab.id) {
             chrome.tabs.sendMessage(activeTab.id, {
               command: "START_DOM_CRAWL",
-              depth: packet.payload.depth,
+              depth: packet.payload?.depth,
             });
           }
         });
       }
     } catch {
-      // 오류 패킷 무시
+      // 오류 무시
     }
   };
 
-  // 소켓 끊김 감지 시 3초의 유휴 주기를 두고 재귀 호출을 단행하여 소켓 수명을 영구 결속 복구
   socket.onclose = () => {
     socket = null;
     if (!reconnectTimer) {
@@ -79,7 +82,6 @@ async function connectToServer() {
   };
 }
 
-// 크롬 브라우저가 확장 프로그램을 가동 및 로드할 때 백그라운드 서비스 워커 즉각 활성화 가동
 chrome.runtime.onInstalled.addListener(() => {
   connectToServer();
 });
@@ -88,21 +90,56 @@ chrome.runtime.onStartup.addListener(() => {
   connectToServer();
 });
 
-// 침투 주입된 content.ts 수집기로부터 획득한 수집 결과물 데이터를 소켓 채널로 백엔드 전달 중계
-chrome.runtime.onMessage.addListener((message) => {
-  if (
-    message.type === "RAW_DOM_DATA" &&
-    socket &&
-    socket.readyState === WebSocket.OPEN
-  ) {
+// 메시지 수신기: 선택적 비동기 응답 채널 제어
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  // 1. 팝업에서 소켓 연결 상태 질의 시
+  if (message.type === "GET_SOCKET_STATUS") {
+    const isConnected = socket !== null && socket.readyState === WebSocket.OPEN;
+    if (!isConnected) {
+      connectToServer();
+    }
     getOrCreateClientId().then((clientId) => {
-      const logPacket = {
-        senderId: clientId,
-        targetId: "ALL", // 대시보드 웹이 즉각 인출하도록 전체 브로드캐스트 전송
-        action: "CRAWL_LOG",
-        payload: message.data,
-      };
-      socket?.send(JSON.stringify(logPacket));
+      try {
+        sendResponse({
+          connected: isConnected,
+          clientId: clientId,
+          port: PLUGIN_CONFIG.server.port,
+        });
+      } catch {
+        // 송신 측 채널이 이미 닫힌 경우 가드
+      }
     });
+    return true; // 이 분기에서만 비동기 응답을 위해 true 반환
   }
+
+  // 2. DOM 수집 데이터 전송 요청 시
+  if (message.type === "RAW_DOM_DATA") {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      getOrCreateClientId().then((clientId) => {
+        const logPacket = {
+          senderId: clientId,
+          targetId: "ALL",
+          action: "CRAWL_LOG",
+          payload: message.data,
+        };
+        socket?.send(JSON.stringify(logPacket));
+        try {
+          sendResponse({ success: true });
+        } catch {
+          // 채널 닫힘 방어
+        }
+      });
+    } else {
+      connectToServer();
+      try {
+        sendResponse({ success: false, reason: "SOCKET_OFFLINE" });
+      } catch {
+        // 채널 닫힘 방어
+      }
+    }
+    return true; // 이 분기에서만 비동기 응답을 위해 true 반환
+  }
+
+  // 기타 메시지는 비동기 대기하지 않고 동기 수용
+  return false;
 });

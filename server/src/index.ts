@@ -10,28 +10,26 @@ import {
   getCrawlLogs,
   clearAllCrawlLogs,
   purgeClient,
-  insertCrawlLog, // 데이터베이스 동기 적재 함수 가져오기
+  insertCrawlLog,
 } from "./database.js";
 import { logServerSystem, logAdminActivity, logPluginComm } from "./logger.js";
 
-// 컴파일러가 식별할 수 있도록 3대 핵심 소켓 제어 인터페이스 타입 선언
 export type ClientType = "plugin" | "admin";
 
 export interface ClientSession {
-  socket: WebSocket; // 연결된 실시간 웹소켓 인스턴스
-  clientId: string; // UUID 고유 발급 식별자
-  clientType: ClientType; // 플러그인 또는 관리자 대시보드 구별자
-  connectedAt: Date; // 최초 소켓 핸드셰이크 통과 및 적재 시간
+  socket: WebSocket;
+  clientId: string;
+  clientType: ClientType;
+  connectedAt: Date;
 }
 
 export interface WebSocketMessage<T = unknown> {
-  senderId: string; // 패킷을 최초 전송한 세션의 고유 식별자 (서버인 경우 'server')
-  targetId?: string | "ALL"; // 수신 대상의 UUID 또는 전체 플러그인 브로드캐스팅 시 'ALL' 지정
-  action: string; // 작업 실행 식별용 명령 문자열 (예: "CRAWL_START")
-  payload: T; // 각 명령별로 전달하는 상세 구조화 바디 데이터
+  senderId: string;
+  targetId?: string | "ALL";
+  action: string;
+  payload: T;
 }
 
-// 가동 기점에 관계 없이 물리 서빙 리소스 폴더인 server/public 폴더를 실시간 절대 추적 연산
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const publicPath = resolve(__dirname, "..", "public");
@@ -46,21 +44,24 @@ function getErrorMessage(error: unknown): string {
 }
 
 app.use(express.json());
-// 절대경로 매핑을 적용하여 server/public 폴더 내부의 HTML/JS 정적 배포본을 안전 서빙
 app.use(express.static(publicPath));
 
-// 통합 데이터베이스 초기 마운트 기동 및 테이블 스키마 자동 구축
 initializeDatabase();
 
-// 활성 상태의 전체 연결 세션을 인메모리 영역에서 선별 통제하는 전역 맵 선언
 export const activeClients = new Map<string, ClientSession>();
 
-// 관리자 전용 데이터베이스 REST API 중계 라우터 수립
-// [REST API 1] 등록된 모든 수집 클라이언트 장비 데이터 목록 조회
-app.get("/api/db/clients", (req, res) => {
+// [REST API 1] 등록된 모든 수집 클라이언트 장비 데이터 목록 및 실시간 온라인 상태 조회
+app.get("/api/db/clients", (_req, res) => {
   try {
     const clients = getAllClients();
-    res.json({ success: true, data: clients });
+    // 실시간 인메모리 세션 맵과 대조하여 is_online 플래그 추가
+    const clientsWithOnlineStatus = clients.map((c) => ({
+      ...c,
+      is_online:
+        activeClients.has(c.client_id) &&
+        activeClients.get(c.client_id)?.socket.readyState === WebSocket.OPEN,
+    }));
+    res.json({ success: true, data: clientsWithOnlineStatus });
   } catch (error: unknown) {
     const errorMessage = getErrorMessage(error);
     logServerSystem("ERROR", `Clients API 에러 반환: ${errorMessage}`);
@@ -69,7 +70,7 @@ app.get("/api/db/clients", (req, res) => {
 });
 
 // [REST API 2] 영구 적재된 수집 데이터 로그 조회 (최근 100개 한정)
-app.get("/api/db/logs", (req, res) => {
+app.get("/api/db/logs", (_req, res) => {
   try {
     const logs = getCrawlLogs(100, 0);
     res.json({ success: true, data: logs });
@@ -80,8 +81,8 @@ app.get("/api/db/logs", (req, res) => {
   }
 });
 
-// [REST API 3] 데이터베이스 저장 로그 일괄 소거 (용량 정화)
-app.delete("/api/db/logs", (req, res) => {
+// [REST API 3] 데이터베이스 저장 로그 일괄 소거
+app.delete("/api/db/logs", (_req, res) => {
   try {
     clearAllCrawlLogs();
     logAdminActivity(
@@ -121,10 +122,8 @@ app.delete("/api/db/clients/:clientId", (req, res) => {
   }
 });
 
-// HTTP 서버 객체를 공유하는 통합 웹소켓 서버 선언
 const wss = new WebSocketServer({ server });
 
-// 웹소켓 연결이 포트 9600에 들어올 시 실행될 라우팅 제어부
 wss.on("connection", (ws: WebSocket, req: IncomingMessage) => {
   const host = req.headers.host || "localhost:9600";
   const url = new URL(req.url || "", `http://${host}`);
@@ -171,7 +170,6 @@ wss.on("connection", (ws: WebSocket, req: IncomingMessage) => {
         `수신 패킷 수집 중계 처리: ${rawData}`,
       );
 
-      // 실시간 수집 로그 패킷 데이터(CRAWL_LOG) 유입 시, SQLite 데이터베이스 테이블에 실시간 동기 영구 축적
       if (message.action === "CRAWL_LOG") {
         insertCrawlLog(clientId, JSON.stringify(message.payload), Date.now());
       }

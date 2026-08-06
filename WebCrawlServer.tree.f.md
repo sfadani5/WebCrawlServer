@@ -1,11 +1,3 @@
-# File Tree: WebCrawlServer
-
-> 생성일시: 2026-08-04 04:07:31
-> .treeignore 적용: 88개 규칙
-> 수집 파일: 80개
-
----
-
 eslint.config.mts
 package.json
 tsconfig.base.json
@@ -40,9 +32,10 @@ admin/src/types/index.ts
 plugins/basic-plugin/public/manifest.json
 plugins/basic-plugin/src/background.ts
 plugins/basic-plugin/src/content.ts
+plugins/basic-plugin/src/popup.css
 plugins/basic-plugin/src/popup.tsx
-server/public/assets/index-CW3B8vI1.css
-server/public/assets/index-qzM_SL6_.js
+server/public/assets/index-JvtQOfKx.css
+server/public/assets/index-lgslwEp3.js
 admin/src/components/layout/Footer.tsx
 admin/src/components/layout/GcpMainLayout.tsx
 admin/src/components/layout/Header.tsx
@@ -50,6 +43,7 @@ admin/src/components/layout/MainLayout.tsx
 admin/src/components/layout/Sidebar.tsx
 admin/src/components/metrics/MetricCardItem.tsx
 admin/src/components/metrics/MetricCardsGroup.tsx
+admin/src/components/modals/DomDataModal.tsx
 admin/src/components/tables/GcpClientsTable.tsx
 admin/src/components/views/ClientsView.tsx
 admin/src/components/views/ControlConsoleView.tsx
@@ -58,9 +52,19 @@ admin/src/components/views/FaviconGeneratorView.tsx
 admin/src/components/views/GcpClientsView.tsx
 admin/src/components/views/GcpControlConsoleView.tsx
 admin/src/components/views/GcpCrawlLogsView.tsx
+plugins/basic-plugin/src/components/Footer.tsx
+plugins/basic-plugin/src/components/Header.tsx
+plugins/basic-plugin/src/components/TabBar.tsx
+plugins/basic-plugin/src/config/pluginConfig.ts
+plugins/basic-plugin/src/hooks/usePopupState.ts
+plugins/basic-plugin/src/services/chromeService.ts
+plugins/basic-plugin/src/types/env.d.ts
 admin/src/components/layout/Breadcrumb/BreadcrumbBar.tsx
 admin/src/components/layout/Navbar/GlobalSearchBar.tsx
 admin/src/components/layout/Navbar/HeaderTools.tsx
 admin/src/components/layout/Navbar/ProjectSelector.tsx
 admin/src/components/layout/Navbar/TopBar.tsx
 admin/src/components/layout/Sidebar/Sidebar.tsx
+plugins/basic-plugin/src/components/tabs/BasicTab.tsx
+plugins/basic-plugin/src/components/tabs/DebugTab.tsx
+plugins/basic-plugin/src/components/tabs/InfoTab.tsx
