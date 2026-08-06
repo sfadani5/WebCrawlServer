@@ -1,102 +1,92 @@
-# R-00410 docs/rule/R-00410 plugin-architecture.md
-
-본 문서는 `WebCrawlServer` 프로젝트의 브라우저 확장 플러그인 모듈화 아키텍처 지침입니다. 단일 소스 파일에 상태 관리, 크롬 API 통신, 비즈니스 로직, UI 컴포넌트가 집중되는 현상을 방지하고 계층화된 모듈 구조를 유지하기 위한 개발 규정을 정의합니다.
+본 문서는 `WebCrawlServer` 브라우저 확장 플러그인의 모듈화 아키텍처 개정 지침입니다. 기존 팝업 중심의 파일 구조에서 **사이드바 단일 UI(`sidepanel.tsx`)** 및 **오프스크린 24시간 소켓 엔진(`offscreen.ts`)** 패러다임으로 이관됨에 따라 향상된 계층화 디렉터리 구조와 모듈 분리 규정을 재정의합니다.
 
 ---
 
 ## 1. 모듈화 아키텍처 개요 및 목적
 
-1.1 **단일 책임 원칙 (SRP)**: 각 파일, 함수, 컴포넌트는 오직 하나의 명확한 책임만 가집니다.  
-1.2 **구조적 복잡도 관리**: 200라인 이상의 거대한 단일 소스 파일 생성을 엄격히 금지합니다.  
-1.3 **가독성 및 유지보수성**: I/O 통신, 비즈니스 로직, UI 프레젠테이션 계층을 분리하여 코드의 독립적인 테스트와 수정이 가능하도록 합니다.  
+1.1 **단일 책임 원칙 (SRP)**: 각 소스 파일, 함수, 컴포넌트는 오직 하나의 명확한 책임만 가집니다.  
+1.2 **200라인 제한 규정**: 단일 소스 파일이 200라인을 초과할 경우 반드시 기능별 모듈 파일로 분할해야 합니다.  
+1.3 **계층 분리 체계**: I/O 소켓 통신 계층(`offscreen.ts`), 이벤트 조율 계층(`background.ts`), 프레젠테이션 UI 계층(`sidepanel.tsx`), 외부 API 서비스 계층(`services/`)을 엄격히 분리합니다.  
 
 ---
 
-## 2. 표준 디렉터리 및 계층 구조
+## 2. 표준 계층 및 디렉터리 구조
 
-플러그인 패키지(`plugins/basic-plugin/src/`) 내부 소스 코드는 아래의 표준 계층 구조를 엄격히 준수해야 합니다.
+`plugins/basic-plugin/src/` 내부 소스 코드는 아래의 표준 계층 구조를 준수해야 합니다.
 
 ```
 plugins/basic-plugin/src/
-├── config/                  # 빌드 타임 상수 및 환경 설정 모듈
+├── config/                  # 빌드 타임 주입 상수 및 소켓 URL 모듈
 │   └── pluginConfig.ts
-├── types/                   # 전역 타입 및 인터페이스 관리 계층
+├── types/                   # 전역 타입 및 확장 패킷 봉투 정의 계층
 │   ├── env.d.ts             # Vite define 전역 상수 타입 선언
-│   └── index.ts             # 플러그인 내부 전역 타입 정의
-├── services/                # 순수 통신 및 크롬 API I/O 서비스 계층
-│   └── chromeService.ts
+│   └── index.ts             # WebSocketPacket<T> 및 파일/메타 타입 명세
+├── services/                # 순수 통신 및 크롬/외부 API I/O 계층
+│   ├── chromeService.ts     # 크롬 API 및 오프스크린 상태 질의
+│   ├── githubService.ts     # 깃허브 REST API 커밋/푸시 서비스
+│   └── backgroundScraper.ts # 백그라운드 fetch() + DOMParser 인출 모듈
 ├── hooks/                   # 비즈니스 로직 및 React 상태 관리 훅 계층
-│   └── usePopupState.ts
+│   └── usePopupState.ts     # 사이드바 UI용 상태 및 비즈니스 콜백 캡슐화
 ├── components/              # UI 프레젠테이션 컴포넌트 계층
-│   ├── Header.tsx           # 상단 타이틀 툴바 UI
-│   ├── TabBar.tsx           # 탭 스위칭 네비게이션 UI
-│   ├── Footer.tsx           # 하단 노드 정보 및 포트 표출 UI
-│   └── tabs/                # 탭별 독립 뷰 컴포넌트
-│       ├── BasicTab.tsx     # 기본 탭 뷰 (상태, URL, DOM 수집 버튼)
-│       ├── InfoTab.tsx      # 정보 탭 뷰 (브라우저/CPU/메모리 스펙)
-│       └── DebugTab.tsx     # 디버깅 탭 뷰 (JSON 작성 및 서버 송신)
-├── background.ts            # 백그라운드 서비스 워커 엔트리
-├── content.ts               # DOM 수집 콘텐츠 스크립트 엔트리
-└── popup.tsx                # 팝업 UI 최상위 조율 엔트리 (30라인 이하 소형화)
+│   ├── Header.tsx           # 상단 타이틀 툴바
+│   ├── TabBar.tsx           # 탭 네비게이션
+│   ├── Footer.tsx           # 하단 노드 ID 및 소켓 포트 표출 UI
+│   └── tabs/                # 탭별 프레젠테이션 뷰 컴포넌트
+│       ├── BasicTab.tsx     # 기본 수집 탭
+│       ├── InfoTab.tsx      # 브라우저/프로세서 정보 탭
+│       └── DebugTab.tsx     # 디버깅 및 커스텀 패킷 테스트 탭
+├── background.ts            # 오프스크린 생성 및 메시지 라우터
+├── content.ts               # DOM 수집 및 선언형 페이징 순차 수집 엔진
+├── sidepanel.tsx            # 단일 메인 사이드바 UI 엔트리 (30라인 이하)
+└── offscreen.ts             # 24시간 무중단 단일 웹소켓 전담 엔진
 ```
 
 ---
 
-## 3. 계층별 역할 및 개발 가이드
+## 3. 계층별 역할 및 표준 가이드
 
-### 3.1 `config/` (환경 설정 계층)
-- **역할**: Vite `define`으로 주입되는 빌드 타임 상수(`__POPUP_WIDTH__`, `__SERVER_PORT__` 등)를 중앙 집계 및 정제
-- **규칙**: React 컴포넌트나 비즈니스 로직을 포함하지 않고 오직 순수 설정 객체(`PLUGIN_CONFIG`) 및 URL 생성 헬퍼만 제공
+### 3.1 `offscreen.ts` (소켓 통신 계층)
+- **역할**: 백엔드 포트(9600)와의 단일 웹소켓을 24시간 단독 소유하며, 패킷 수신 시 크롬 내부 메시징으로 전달.
+- **규칙**: UI 렌더링 코드를 일절 포함하지 않으며 오직 통신 및 스토리지 최신화만 수행.
 
-### 3.2 `types/` (타입 시스템 계층)
-- **역할**: 전역 인터페이스, 유니온 타입, DTO, 스토리지 구조 정의
-- **규칙**: `any` 타입 사용을 금지하며 모든 인터페이스는 명시적으로 선언
+### 3.2 `background.ts` (이벤트 라우팅 계층)
+- **역할**: 아이콘 클릭 시 사이드바 즉시 실행 지정 및 오프스크린 문서 자동 생성/유지 관리.
+- **규칙**: 직접 웹소켓을 연결하지 않고 내부 메시지 중계 라우팅만 수행.
 
-### 3.3 `services/` (통신 및 I/O 계층)
-- **역할**: `chrome.runtime`, `chrome.tabs`, `navigator` 등 브라우저/크롬 API와의 직접적인 순수 통신 수행
-- **규칙**: React 수명 주기(`useState`, `useEffect`)와 완전히 독립적인 순수 비동기 함수 형태로 작성
+### 3.3 `services/` (외부 I/O 서비스 계층)
+- **역할**: `chrome.*` API, GitHub REST API (`githubService.ts`), 백그라운드 HTML 인출(`backgroundScraper.ts`) 수행.
+- **규칙**: React 라이브러리(`useState`, `useEffect`)와 완전히 독립된 순수 비동기 함수 형태로 작성.
 
 ### 3.4 `hooks/` (비즈니스 로직 계층)
-- **역할**: 서비스 계층의 통신 함수를 호출하고, React 상태(`useState`) 및 이벤트 핸들러를 캡슐화
-- **규칙**: UI 컴포넌트에 전달할 상태값과 핸들러 콜백만 반환하며, 직접적인 JSX HTML 렌더링 코드를 포함하지 않음
+- **역할**: 서비스 계층의 함수를 호출하고 React 상태 및 액션 콜백을 포장.
+- **규칙**: JSX HTML 렌더링 코드를 포함하지 않고 UI 컴포넌트에 전달할 상태와 핸들러만 반환.
 
-### 3.5 `components/` (UI 프레젠테이션 계층)
-- **역할**: 전달받은 props 데이터를 바탕으로 순수 JSX UI만 렌더링
-- **규칙**: 크롬 API를 직접 호출하지 않으며 모든 이벤트 처리는 props로 전달받은 콜백을 호출
-
----
-
-## 4. 소스 파일 제한 및 엔트리 소형화 규정
-
-4.1 **200라인 제약**: 단일 소스 파일이 200라인을 초과할 경우 반드시 기능별 파일로 분할해야 합니다.  
-4.2 **`popup.tsx` 엔트리 규정**: 최상위 팝업 엔트리 파일(`popup.tsx`)은 직접적인 UI/비즈니스 로직 구현을 하지 않으며, 오직 `usePopupState` 훅을 호출하고 레이아웃 컴포넌트들을 마운트/조율하는 역할만 담당하여 **30라인 이하의 소형화 상태**를 유지해야 합니다.  
+### 3.5 `sidepanel.tsx` 및 `components/` (UI 프레젠테이션 계층)
+- **역할**: 유저 상호작용 및 단일 대시보드 UI/UX 렌더링.
+- **규칙**: 최상위 `sidepanel.tsx` 엔트리는 `usePopupState` 훅을 호출하여 레이아웃을 마운트하는 **30라인 이하의 소형화 상태**를 유지해야 함.
 
 ---
 
-## 5. 데이터 흐름 규칙 (Single-Direction Data Flow)
+## 4. 데이터 단방향 흐름 규칙 (Single-Direction Data Flow)
 
 ```
-[ User Action ] ──► [ Presentational Component ] (BasicTab, DebugTab 등)
-                            │
-                            ▼ (Trigger Callback)
-                    [ Custom Hook ] (usePopupState)
-                            │
-                            ▼ (Call I/O API)
-                    [ Pure Service Module ] (chromeService)
-                            │
-                            ▼ (chrome.runtime / WebSocket)
-                    [ Chrome Background / Server ]
+[ User Action ] ──► [ SidePanel Component ] (BasicTab, DebugTab 등)
+                             │
+                             ▼ (Trigger Callback)
+                     [ Custom Hook ] (usePopupState)
+                             │
+                             ▼ (Call Service / Send Message)
+                     [ Pure Service Module / Offscreen ]
+                             │
+                             ▼ (WebSocket)
+                     [ WebCrawlServer (Port 9600) ]
 ```
-
-- 모든 데이터 흐름은 **상위 계층에서 하위 계층으로의 단방향 흐름**을 유지합니다.
-- UI 컴포넌트는 상위 훅으로부터 수신한 props 데이터에만 의존해야 합니다.
 
 ---
 
-## 6. 개발 및 리팩토링 체크리스트
+## 5. 리팩토링 체크리스트
 
-- [ ] `popup.tsx` 엔트리 파일이 30라인 이하로 소형화되었는가?
-- [ ] 단일 소스 파일 중 200라인을 초과하는 파일이 존재하지 않는가?
-- [ ] `chrome.*` API 직접 호출 코드가 `services/` 모듈 내부로 정갈하게 격리되었는가?
-- [ ] UI 컴포넌트(`components/`)가 순수 props 기반으로 동작하는가?
-- [ ] 모듈 간 임포트 시 ESM 규격 및 TSX/TS 파일 확장자 해소에 결함이 없는가?
+- [ ] 메인 UI 진입점인 `sidepanel.tsx` 파일이 30라인 이하로 소형화되었는가?
+- [ ] 단일 소스 파일 중 200라인을 초과하는 거대 파일이 존재하지 않는가?
+- [ ] `offscreen.ts`가 웹소켓 연결을 단독 소유하고 있는가?
+- [ ] `services/` 모듈들이 React 라이브러리와 독립된 순수 함수로 작성되었는가?

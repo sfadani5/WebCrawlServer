@@ -1,50 +1,123 @@
-# R-00430 docs/rule/R-00430 plugin-crawling.md
-
-본 문서는 `WebCrawlServer` 프로젝트의 브라우저 확장 플러그인 DOM 크롤링 및 콘텐츠 스크립트 지침입니다. 콘텐츠 스크립트(`content.ts`)의 주입, 페이지 메타데이터 추출, 전체 DOM 수집, 원격 크롤링 지시 명령 연동 및 크롤링 실행 가드를 정의합니다.
+본 문서는 `WebCrawlServer` 브라우저 확장 플러그인의 DOM 크롤링 및 수집 개정 지침입니다. 기존 콘텐츠 스크립트 기반 수집 방식에 더해 **백그라운드 초고속 `fetch()` + `DOMParser` 인출 기술**과 **선언형 자동 페이징 루프 엔진**에 대한 규정을 정의합니다.
 
 ---
 
-## 1. 개요 및 주입 범위
+## 1. 수집 모드 개요 및 범위
 
-1.1 **역할**: 콘텐츠 스크립트(`content.ts`)는 활성화된 웹 페이지 DOM 에이전트로 주입되어, 브라우저에서 실행 중인 타깃 페이지의 DOM 데이터를 수집하고 이를 백그라운드로 전달합니다.  
-1.2 **주입 범위**: `manifest.json` 내 `content_scripts`에 `"matches": ["<all_urls>"]`로 지정되어 일반 웹 HTTP/HTTPS 페이지에 자동 주입됩니다.  
-1.3 **실행 격리**: DOM 탐색 연산은 브라우저 탭 격리 컨텍스트에서 수행되며, 메인 웹 페이지의 전역 JavaScript 변수 오염을 방지해야 합니다.  
+플러그인은 수집 타깃 사이트의 특성 및 과부하 방지 목적에 맞춰 3가지 수집 모드를 지원해야 합니다.
 
----
-
-## 2. 수집 모드 및 패킷 규격
-
-콘텐츠 스크립트는 2가지 수집 명령 모드를 수용하도록 작성되어야 합니다.
-
-### 2.1 요약 메타데이터 수집 모드 (`START_DOM_CRAWL`)
-- **수집 대상**:
-  - 현재 페이지 URL (`window.location.href`)
-  - 페이지 제목 (`document.title`)
-  - 상위 하이퍼링크 목록 (`document.querySelectorAll("a")` 탐색 후 최대 15개 유효 `href` 추출)
-  - 수집 타임스탬프 (`Date.now()`)
-- **패킷 송출**: 수집 완료 즉시 `chrome.runtime.sendMessage`를 통해 `RAW_DOM_DATA` 타입으로 백그라운드로 전송합니다.
-
-### 2.2 전체 DOM 원본 수집 모드 (`COLLECT_FULL_DOM`)
-- **수집 대상**:
-  - 현재 페이지 URL 및 제목
-  - 페이지 전체 HTML 원본 소스 (`document.documentElement.outerHTML`)
-  - 수집 타임스탬프
-- **응답 처리**: 백그라운드/팝업으로 `RAW_DOM_DATA` 전송과 동시에 동기식 `sendResponse({ success: true, data: domData })`를 응답해야 합니다.
+1. **백그라운드 `fetch()` 인출 모드 (가장 추천)**: 유저 탭 이동 없이 `fetch()`와 `DOMParser`로 순수 HTML만 백그라운드에서 0.1초 만에 인출하여 수집 (CPU/RAM 사용량 0% 급).
+2. **콘텐츠 스크립트 메타/전체 DOM 수집 모드**: 현재 탭의 `content.ts`가 DOM 전체(`outerHTML`) 또는 주요 이미지/하이퍼링크 메타 추출.
+3. **선언형 페이징 수집 모드**: 서버가 보낸 JSON 행동 양식에 맞춰 `content.ts`가 다음 페이지 버튼을 자동 순차 클릭하며 연속 수집.
 
 ---
 
-## 3. 원격 크롤링 제어 연동 (`CRAWL_START` / `CRAWL_STOP`)
+## 2. 백그라운드 `fetch()` + `DOMParser` 수집 규정
 
-3.1 백엔드 서버나 관리자 대시보드로부터 `CRAWL_START` 명령이 백그라운드로 유입되면, 백그라운드는 현재 활성화된 탭(`chrome.tabs.query`)의 콘텐츠 스크립트로 `START_DOM_CRAWL` 지시를 침투 주입합니다.  
-3.2 수집 매개변수(탐색 깊이 `depth`, 대상 URL 패턴 등)가 존재하는 경우 페이로드에 포함하여 크롤링 동작을 제어해야 합니다.  
+유저가 웹서핑하는 화면과 탭을 전혀 방해하지 않고, 오프스크린/사이드바 백그라운드에서 고속으로 데이터를 인출하는 표준 지침입니다.
+
+```typescript
+// plugins/basic-plugin/src/services/backgroundScraper.ts
+
+export async function fetchAndParseInBackground(
+  targetUrl: string,
+  selector: string
+): Promise<{ title: string; items: string[]; timestamp: number }> {
+  // 1. 유저의 로그인 쿠키가 자동 포함되는 백그라운드 fetch
+  const response = await fetch(targetUrl, {
+    method: "GET",
+    credentials: "include", // 저장된 세션 쿠키 자동 인출 동봉
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP 요청 에러: ${response.status}`);
+  }
+
+  const htmlText = await response.text();
+
+  // 2. 가상 DOMParser 생성 (화면 렌더링 무발생)
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(htmlText, "text/html");
+
+  // 3. CSS 셀렉터 기반 데이터 정제
+  const items = Array.from(doc.querySelectorAll(selector))
+    .map((el) => el.textContent?.trim() || "")
+    .filter((text) => text.length > 0);
+
+  return {
+    title: doc.title || "제목 없음",
+    items,
+    timestamp: Date.now(),
+  };
+}
+```
 
 ---
 
-## 4. 크롤링 안전성 및 성능 가드
+## 3. 선언형 페이징 순차 수집 엔진 규정 (`content.ts`)
 
-4.1 **특수 URL 침투 금지 가드**:
-   - `chrome://`, `chrome-extension://`, `about:blank` 등 크롬 내부 특수 페이지에서는 콘텐츠 스크립트 메시징 수신 시 예외를 발생시키지 않고 조용히 수신을 거부해야 합니다.
-4.2 **메모리 및 DOM 폭탄 방지**:
-   - 지나치게 거대한 DOM(예: 10MB 이상의 무한 스크롤 페이지) 인출 시 브라우저 메인 쓰레드가 멈추지 않도록 필요 시 직렬화 크기를 가드합니다.
-4.3 **메시지 리스너 리턴 가드**:
-   - `content.ts` 내 `chrome.runtime.onMessage.addListener`는 동기 처리 완료 후 `sendResponse()`를 동기식으로 호출하고 `return false;`를 반환하여 크롬 비동기 채널 에러를 원천 차단해야 합니다.
+서버에서 원격 수신한 행동 양식 패킷(`START_PAGINATION_CRAWL`)에 맞춰 1페이지부터 N페이지까지 자동 순차 클릭 및 수집을 단행합니다.
+
+```typescript
+// plugins/basic-plugin/src/content.ts
+
+export interface PaginationCrawlPayload {
+  nextPageSelector: string; // 다음 페이지 버튼 셀렉터
+  contentSelector: string;  // 수집할 데이터 영역 셀렉터
+  maxPages: number;         // 수집할 총 페이지 수
+  delayMs: number;          // 페이지 이동 간 지연 시간
+}
+
+async function runPaginationCrawlEngine(payload: PaginationCrawlPayload): Promise<void> {
+  let currentPage = 1;
+
+  while (currentPage <= payload.maxPages) {
+    // 1. 현재 페이지 수집
+    const items = Array.from(document.querySelectorAll(payload.contentSelector))
+      .map((el) => el.textContent?.trim() || "")
+      .filter((text) => text.length > 0);
+
+    // 2. 오프스크린 소켓으로 데이터 포워딩
+    chrome.runtime.sendMessage({
+      type: "RAW_DOM_DATA",
+      data: {
+        page: currentPage,
+        url: window.location.href,
+        title: document.title,
+        items,
+        timestamp: Date.now(),
+      },
+    });
+
+    if (currentPage >= payload.maxPages) break;
+
+    // 3. 다음 페이지 클릭
+    const nextBtn = document.querySelector(payload.nextPageSelector) as HTMLElement | null;
+    if (!nextBtn) break;
+
+    nextBtn.click();
+    currentPage++;
+
+    // 4. 차단 방지를 위한 인간 모사 지연 시간 (Human-like Delay + Random Jitter)
+    const jitter = Math.floor(Math.random() * 1000);
+    await new Promise((resolve) => setTimeout(resolve, payload.delayMs + jitter));
+  }
+}
+```
+
+---
+
+## 4. 안전성 및 차단 방지 가드
+
+4.1 **특수 URL 침투 차단**: `chrome://`, `chrome-extension://`, `about:blank` 등 브라우저 내부 페이지에서는 스크립트 실행을 거부해야 합니다.  
+4.2 **봇 차단 우회 및 랜덤 딜레이**: 페이징 수집 시 일정한 시간 간격이 아닌 무작위 지연 시간(Jitter Delay)을 추가하여 Cloudflare 등의 스팸 봇 감지를 무력화합니다.  
+4.3 **동기식 응답 가드**: `content.ts` 내 `chrome.runtime.onMessage` 처리 후 동기 응답 완료 시 `return false;`를 반환하여 메시지 채널 오류를 차단합니다.  
+
+---
+
+## 5. 검증 체크리스트
+
+- [ ] `fetch()` 백그라운드 수집 시 유저 활성 탭이 전환되지 않고 0.1초 만에 인출되는가?
+- [ ] `DOMParser`를 통한 가상 DOM 파싱 시 메모리 누수가 발생하지 않는가?
+- [ ] 페이징 자동 이동 수집 시 지연 시간(Delay)이 정상 적용되는가?
+- [ ] 특수 페이지(`chrome://`)에서 수집 스크립트가 안전하게 예외 처리되는가?
