@@ -1,145 +1,72 @@
 // plugins/basic-plugin/src/background.ts
 
-import { PLUGIN_CONFIG, getWebSocketUrl } from "./config/pluginConfig.js";
+/**
+ * 백그라운드 서비스 워커 모듈입니다.
+ * 오프스크린 문서를 생성하여 24시간 무중단 웹소켓 소유권을 위임하고,
+ * 사이드바 오픈 동작 및 내부 메시지 중계를 담당합니다.
+ * ADR-001: 사이드바 단일 UI & 오프스크린 무중단 소켓 아키텍처 준수
+ */
 
-async function getOrCreateClientId(): Promise<string> {
-  return new Promise((resolve) => {
-    chrome.storage.local.get(["clientId"], (result) => {
-      if (result && typeof result.clientId === "string") {
-        resolve(result.clientId);
-      } else {
-        const generatedId = crypto.randomUUID();
-        chrome.storage.local.set({ clientId: generatedId }, () => {
-          resolve(generatedId);
-        });
-      }
-    });
+/**
+ * 브라우저 백그라운드에 오프스크린 문서가 미생성 상태일 경우 자동 생성합니다.
+ * 이미 생성된 경우 중복 생성을 방지합니다.
+ */
+async function ensureOffscreenDocument(): Promise<void> {
+  // 기존 오프스크린 컨텍스트 존재 여부 확인
+  const existingContexts = await chrome.runtime.getContexts({
+    contextTypes: [chrome.runtime.ContextType.OFFSCREEN_DOCUMENT],
+  });
+
+  if (existingContexts.length > 0) return;
+
+  // 오프스크린 문서 생성 (24시간 무중단 WebSocket 소유자)
+  await chrome.offscreen.createDocument({
+    url: "offscreen.html",
+    reasons: [chrome.offscreen.Reason.BLOBS],
+    justification: "WebCrawlServer 분산 크롤링 24시간 무중단 웹소켓 유지",
   });
 }
 
-let socket: WebSocket | null = null;
-let reconnectTimer: number | null = null;
-
-// 빌드 주입 상수를 이용하여 서버 통신망 수립
-async function connectToServer() {
-  if (
-    socket &&
-    (socket.readyState === WebSocket.OPEN ||
-      socket.readyState === WebSocket.CONNECTING)
-  ) {
-    return;
-  }
-
-  const clientId = await getOrCreateClientId();
-  const wsUrl = getWebSocketUrl(clientId);
-
-  socket = new WebSocket(wsUrl);
-
-  socket.onopen = () => {
-    if (reconnectTimer) {
-      clearTimeout(reconnectTimer);
-      reconnectTimer = null;
-    }
-    const helloPacket = {
-      senderId: clientId,
-      targetId: "ALL",
-      action: "CRAWL_LOG",
-      payload: { system: "수집기 소켓 통신망 정상 안착 완료" },
-    };
-    socket?.send(JSON.stringify(helloPacket));
-  };
-
-  socket.onmessage = (event) => {
-    try {
-      const packet = JSON.parse(event.data);
-      if (packet.action === "CRAWL_START") {
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-          const activeTab = tabs[0];
-          if (activeTab && activeTab.id) {
-            chrome.tabs.sendMessage(activeTab.id, {
-              command: "START_DOM_CRAWL",
-              depth: packet.payload?.depth,
-            });
-          }
-        });
-      }
-    } catch {
-      // 오류 무시
-    }
-  };
-
-  socket.onclose = () => {
-    socket = null;
-    if (!reconnectTimer) {
-      reconnectTimer = setTimeout(() => {
-        connectToServer();
-      }, 3000) as unknown as number;
-    }
-  };
-
-  socket.onerror = () => {
-    socket = null;
-  };
-}
-
+/**
+ * 확장 프로그램 설치 시 초기화 작업을 수행합니다.
+ * 아이콘 클릭 시 팝업 대신 사이드바가 즉시 열리도록 설정하고,
+ * 오프스크린 문서를 생성하여 소켓 통신을 준비합니다.
+ */
 chrome.runtime.onInstalled.addListener(() => {
-  connectToServer();
+  // 툴바 아이콘 클릭 시 팝업 대신 사이드 패널 즉시 오픈 설정
+  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+  ensureOffscreenDocument();
 });
 
+/**
+ * 브라우저 시작 시 오프스크린 문서를 재생성합니다.
+ * 서비스 워커가 종료된 후 재가동될 때도 소켓 연결이 복원됩니다.
+ */
 chrome.runtime.onStartup.addListener(() => {
-  connectToServer();
+  ensureOffscreenDocument();
 });
 
-// 메시지 수신기: 선택적 비동기 응답 채널 제어
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  // 1. 팝업에서 소켓 연결 상태 질의 시
-  if (message.type === "GET_SOCKET_STATUS") {
-    const isConnected = socket !== null && socket.readyState === WebSocket.OPEN;
-    if (!isConnected) {
-      connectToServer();
-    }
-    getOrCreateClientId().then((clientId) => {
-      try {
-        sendResponse({
-          connected: isConnected,
-          clientId: clientId,
-          port: PLUGIN_CONFIG.server.port,
-        });
-      } catch {
-        // 송신 측 채널이 이미 닫힌 경우 가드
-      }
-    });
-    return true; // 이 분기에서만 비동기 응답을 위해 true 반환
-  }
+/**
+ * 크롬 내부 메시지 수신기 및 중계 라우터입니다.
+ * 오프스크린에서 전달된 서버 수신 패킷을 적절한 탭/사이드바로 라우팅합니다.
+ */
+chrome.runtime.onMessage.addListener((message, _sender, _sendResponse) => {
+  // 오프스크린에서 중계된 서버 수신 패킷 처리
+  if (message.type === "SOCKET_PACKET_RECEIVED" && message.packet) {
+    const packet = message.packet;
 
-  // 2. DOM 수집 데이터 전송 요청 시
-  if (message.type === "RAW_DOM_DATA") {
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      getOrCreateClientId().then((clientId) => {
-        const logPacket = {
-          senderId: clientId,
-          targetId: "ALL",
-          action: "CRAWL_LOG",
-          payload: message.data,
-        };
-        socket?.send(JSON.stringify(logPacket));
-        try {
-          sendResponse({ success: true });
-        } catch {
-          // 채널 닫힘 방어
+    // 원격 CRAWL_START 지시 수신 시 활성 탭 콘텐츠 스크립트로 전달
+    if (packet.action === "CRAWL_START") {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        const activeTab = tabs[0];
+        if (activeTab && activeTab.id) {
+          chrome.tabs.sendMessage(activeTab.id, {
+            command: "START_DOM_CRAWL",
+            depth: packet.payload?.depth,
+          });
         }
       });
-    } else {
-      connectToServer();
-      try {
-        sendResponse({ success: false, reason: "SOCKET_OFFLINE" });
-      } catch {
-        // 채널 닫힘 방어
-      }
     }
-    return true; // 이 분기에서만 비동기 응답을 위해 true 반환
   }
-
-  // 기타 메시지는 비동기 대기하지 않고 동기 수용
   return false;
 });
