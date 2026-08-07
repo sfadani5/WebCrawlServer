@@ -1,5 +1,23 @@
 # 작업 요청서 (docs/ask.md)
 
+## 작업 상태 요약 (검증 완료: 2026-08-07)
+
+- **네비게이션 & 브레드크럼 체계 일치화**: 구현 및 코드 검증 완료.
+  - 관련 파일: admin/src/components/layout/Sidebar/Sidebar.tsx, admin/src/components/layout/Breadcrumb/BreadcrumbBar.tsx
+  - 변경 이력: docs/CHANGELOG/20260803-001-navigation-breadcrumb-sync.md
+
+- **네트워크 모니터링 메뉴 및 뷰**: `NetworkMonitorView` 구현 및 기본 동작 확인 완료.
+  - 관련 파일: admin/src/components/views/NetworkMonitorView.tsx
+
+- **타입 확장 및 터미널 로그 엔트리**: `ActiveTab`, `TerminalLogEntry` 등 타입 정의 적용 완료.
+  - 관련 파일: admin/src/types/index.ts
+
+- **백엔드 네트워크 헬스체크 및 Ping/Pong 처리**: `/api/admin/network/health` 엔드포인트 및 `PING_TEST`/`PONG_RESPONSE` 소켓 핸들러 구현 확인 완료.
+  - 관련 파일: server/src/index.ts
+
+- **남은 작업(권장)**: 로컬 `admin` 빌드(`npm run build --workspace=admin`) 및 통합 테스트, 사용자 피드백 반영.
+
+
 # [PART 1] Admin 대시보드 종합 개선 목록 및 아키텍처 설계
 
 ## 1. 네비게이션 & 브레드크럼 체계 일치화

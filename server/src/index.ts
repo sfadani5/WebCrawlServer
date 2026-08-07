@@ -166,7 +166,7 @@ app.put("/api/db/clients/:clientId/config", (req, res) => {
     logAdminActivity(
       "SUPER_ADMIN",
       "UPDATE_NODE_CONFIG",
-      `노드 환경설정 변경 완료 [ID: ${clientId}] [별칭: ${alias}]`
+      `노드 환경설정 변경 완료 [ID: ${clientId}] [별칭: ${alias}]`,
     );
 
     res.json({ success: true, message: "노드 환경설정이 저장되었습니다." });
@@ -198,10 +198,13 @@ app.post("/api/admin/workers", (req, res) => {
     logAdminActivity(
       "SUPER_ADMIN",
       "CREATE_WORKER",
-      `신규 수집 워커 생성 완료 [ID: ${params.workerId}] [이름: ${params.workerName}]`
+      `신규 수집 워커 생성 완료 [ID: ${params.workerId}] [이름: ${params.workerName}]`,
     );
 
-    res.json({ success: true, message: "수집 워커가 성공적으로 생성되었습니다." });
+    res.json({
+      success: true,
+      message: "수집 워커가 성공적으로 생성되었습니다.",
+    });
   } catch (error: unknown) {
     res.status(500).json({ success: false, message: getErrorMessage(error) });
   }
@@ -234,13 +237,14 @@ app.get("/api/admin/network/health", (_req, res) => {
     const serverUptime = process.uptime();
     const memoryUsage = process.memoryUsage();
     const totalMemoryMB = Math.round(memoryUsage.heapUsed / 1024 / 1024);
-    
+
     const serverAddress = server.address();
     const portBound = serverAddress !== null;
-    const port = serverAddress && typeof serverAddress === 'object' 
-      ? serverAddress.port 
-      : 9600;
-    
+    const port =
+      serverAddress && typeof serverAddress === "object"
+        ? serverAddress.port
+        : 9600;
+
     let walModeEnabled = false;
     try {
       initializeDatabase();
@@ -248,9 +252,9 @@ app.get("/api/admin/network/health", (_req, res) => {
     } catch {
       walModeEnabled = false;
     }
-    
+
     const responseTime = Date.now();
-    
+
     res.json({
       success: true,
       data: {
@@ -288,7 +292,11 @@ app.get("/api/db/logs", (_req, res) => {
 app.delete("/api/db/logs", (_req, res) => {
   try {
     clearAllCrawlLogs();
-    logAdminActivity("SUPER_ADMIN", "DELETE_ALL_LOGS", "전체 수집 로그 일괄 소거");
+    logAdminActivity(
+      "SUPER_ADMIN",
+      "DELETE_ALL_LOGS",
+      "전체 수집 로그 일괄 소거",
+    );
     res.json({ success: true, message: "모든 수집 로그가 소거되었습니다." });
   } catch (error: unknown) {
     const errorMessage = getErrorMessage(error);
@@ -317,7 +325,11 @@ app.delete("/api/db/clients/:clientId", (req, res) => {
       activeClients.delete(targetId);
     }
 
-    logAdminActivity("SUPER_ADMIN", "PURGE_CLIENT", `클라이언트 영구 추방: ${targetId}`);
+    logAdminActivity(
+      "SUPER_ADMIN",
+      "PURGE_CLIENT",
+      `클라이언트 영구 추방: ${targetId}`,
+    );
     res.json({ success: true, message: "클라이언트가 차단 정화되었습니다." });
   } catch (error: unknown) {
     res.status(500).json({ success: false, message: getErrorMessage(error) });
@@ -331,7 +343,10 @@ app.delete("/api/db/clients/:clientId", (req, res) => {
  * @param tokenType - 토큰 구분 식별자 (예: "githubToken")
  * @param newToken - 최신 인증 토큰 값
  */
-export function broadcastUpdatedToken(tokenType: string, newToken: string): void {
+export function broadcastUpdatedToken(
+  tokenType: string,
+  newToken: string,
+): void {
   const tokenPacket: WebSocketMessage = {
     senderId: "server",
     targetId: "ALL",
@@ -342,7 +357,10 @@ export function broadcastUpdatedToken(tokenType: string, newToken: string): void
   };
 
   activeClients.forEach((client) => {
-    if (client.clientType === "plugin" && client.socket.readyState === WebSocket.OPEN) {
+    if (
+      client.clientType === "plugin" &&
+      client.socket.readyState === WebSocket.OPEN
+    ) {
       client.socket.send(JSON.stringify(tokenPacket));
     }
   });
@@ -383,7 +401,10 @@ wss.on("connection", (ws: WebSocket, req: IncomingMessage) => {
     lastSeen: Date.now(),
   });
 
-  logServerSystem("INFO", `세션 마운트 성공: [ID: ${clientId}] [TYPE: ${clientType}]`);
+  logServerSystem(
+    "INFO",
+    `세션 마운트 성공: [ID: ${clientId}] [TYPE: ${clientType}]`,
+  );
 
   ws.on("message", (rawData: string) => {
     try {
@@ -401,14 +422,42 @@ wss.on("connection", (ws: WebSocket, req: IncomingMessage) => {
         logPluginComm(
           clientId,
           "CLIENT_STATUS_UPDATE",
-          `사이드바 상태: ${session.isSidebarOpen ? "OPEN(활성)" : "CLOSED(비활성)"}`
+          `사이드바 상태: ${session.isSidebarOpen ? "OPEN(활성)" : "CLOSED(비활성)"}`,
         );
         return;
       }
 
+      // PONG_RESPONSE는 관리자 UI로 전달하여 관리자에서 각 노드의 응답을 확인할 수 있도록 중계
+      if (message.action === "PONG_RESPONSE") {
+        console.log("[server] forwarding PONG_RESPONSE to admin clients");
+        activeClients.forEach((client) => {
+          if (
+            client.clientType === "admin" &&
+            client.socket.readyState === WebSocket.OPEN
+          ) {
+            client.socket.send(JSON.stringify(message));
+          }
+        });
+        return;
+      }
+
+      // 우선: 전체 브로드캐스트 패킷 처리 (targetId === "ALL") — 관리자가 ALL 대상으로 보낸 패킷을 수집 노드로 중계
+      if (message.targetId === "ALL") {
+        activeClients.forEach((client) => {
+          if (
+            client.clientId !== clientId &&
+            client.socket.readyState === WebSocket.OPEN
+          ) {
+            client.socket.send(JSON.stringify(message));
+          }
+        });
+        return;
+      }
+
       // 1.5. Ping/Pong 네트워크 지연 시간 테스트 (네트워크 모니터링 지원)
+      // 플러그인에서 서버로 직접 보낸 PING_TEST는 서버가 해당 플러그인에게 PONG_RESPONSE를 응답합니다.
       if (message.action === "PING_TEST") {
-        // PING_TEST 수신 시 PONG_RESPONSE로 즉시 응답
+        // PING_TEST를 보낸 클라이언트가 플러그인인 경우에만 PONG_RESPONSE 응답
         const pongResponse: WebSocketMessage = {
           senderId: "server",
           targetId: message.senderId,
@@ -421,17 +470,28 @@ wss.on("connection", (ws: WebSocket, req: IncomingMessage) => {
           },
           meta: { timestamp: Date.now() },
         };
-        
-        // PING_TEST를 보낸 클라이언트가 플러그인인 경우에만 PONG_RESPONSE 응답
-        if (session && clientType === "plugin" && ws.readyState === WebSocket.OPEN) {
+
+        if (
+          session &&
+          clientType === "plugin" &&
+          ws.readyState === WebSocket.OPEN
+        ) {
           ws.send(JSON.stringify(pongResponse));
+          logPluginComm(
+            clientId,
+            "PING_TEST",
+            "Ping/Pong 네트워크 테스트 응답 완료",
+          );
         }
-        
-        logPluginComm(clientId, "PING_TEST", "Ping/Pong 네트워크 테스트 응답 완료");
+
         return;
       }
 
-      logPluginComm(clientId, message.action, `수신 패킷 처리: ${rawData.substring(0, 200)}`);
+      logPluginComm(
+        clientId,
+        message.action,
+        `수신 패킷 처리: ${rawData.substring(0, 200)}`,
+      );
 
       // 2. CRAWL_LOG 유입 시 파일 분리 저장 및 동적 워커 파이프라인 단행 (ADR-004)
       if (message.action === "CRAWL_LOG") {
@@ -455,7 +515,7 @@ wss.on("connection", (ws: WebSocket, req: IncomingMessage) => {
           clientId,
           JSON.stringify(payloadObj),
           Date.now(),
-          domain
+          domain,
         );
 
         // HTML 원본 소스가 있을 경우 물리 파일 분리 저장소 적재 (R-00208)
@@ -464,9 +524,11 @@ wss.on("connection", (ws: WebSocket, req: IncomingMessage) => {
         let savedSize = 0;
 
         if (fullDomHtml) {
-          const clientRec = getAllClients().find((c) => c.client_id === clientId);
+          const clientRec = getAllClients().find(
+            (c) => c.client_id === clientId,
+          );
           const assignedWorker = getWorkerById(
-            clientRec?.assigned_worker_id || "default_worker"
+            clientRec?.assigned_worker_id || "default_worker",
           );
 
           const saveRes = saveCrawledContentToFile({
@@ -482,9 +544,11 @@ wss.on("connection", (ws: WebSocket, req: IncomingMessage) => {
         }
 
         // 지정된 동적 수집 워커 파이프라인 단행 (R-00207)
-        const clientRec2 = getAllClients().find((c) => c.client_id === clientId);
+        const clientRec2 = getAllClients().find(
+          (c) => c.client_id === clientId,
+        );
         const assignedWorker2 = getWorkerById(
-          clientRec2?.assigned_worker_id || "default_worker"
+          clientRec2?.assigned_worker_id || "default_worker",
         );
         if (assignedWorker2) {
           executeWorkerPipeline(
@@ -493,7 +557,7 @@ wss.on("connection", (ws: WebSocket, req: IncomingMessage) => {
             domain,
             savedPath,
             savedSize,
-            payloadObj
+            payloadObj,
           );
         }
       }
@@ -514,7 +578,10 @@ wss.on("connection", (ws: WebSocket, req: IncomingMessage) => {
       // 4. 단일 타깃 릴레이 라우팅 (특정 UUID 지정)
       if (message.targetId && activeClients.has(message.targetId)) {
         const targetSession = activeClients.get(message.targetId);
-        if (targetSession && targetSession.socket.readyState === WebSocket.OPEN) {
+        if (
+          targetSession &&
+          targetSession.socket.readyState === WebSocket.OPEN
+        ) {
           targetSession.socket.send(JSON.stringify(message));
         }
       }
@@ -536,5 +603,7 @@ wss.on("connection", (ws: WebSocket, req: IncomingMessage) => {
 // 통합 백엔드 포트 9600으로 서버 가동
 server.listen(9600, () => {
   logServerSystem("INFO", "통합 백엔드 포트 9600 정상 가동 완료");
-  console.log("[시스템] 통합 백엔드 API 및 데이터베이스 서비스 포트 9600 구동 중");
+  console.log(
+    "[시스템] 통합 백엔드 API 및 데이터베이스 서비스 포트 9600 구동 중",
+  );
 });
