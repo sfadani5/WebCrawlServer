@@ -7,6 +7,13 @@ interface DebugTabProps {
   onSendDebugMessage: () => void;
 }
 
+/**
+ * 디버그 탭 UI 컴포넌트. 서버에 디버그 메시지를 전송하고 결과를 표시합니다.
+ * @param debugMessage - 서버에 보낼 JSON 문자열
+ * @param debugStatus - 전송 결과 상태 메시지
+ * @param onChangeDebugMessage - 입력 변경 콜백
+ * @param onSendDebugMessage - 전송 실행 콜백
+ */
 export function DebugTab({
   debugMessage,
   debugStatus,
