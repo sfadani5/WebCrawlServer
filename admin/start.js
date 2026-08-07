@@ -1,9 +1,16 @@
+// admin/start.js
 import { spawn } from "node:child_process";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const adminDir = resolve(__dirname);
 
 // 가상 파이프 스트림(stdout/stderr)에 명시적 리스너를 바인딩하여 부모 프로세스 이벤트 루프를 강제 유지
 const child = spawn("npm", ["run", "dev"], {
   shell: true,
-  cwd: "admin",
+  cwd: adminDir,
   windowsHide: true, // 윈도우의 가상 콘솔창 번쩍임 깜빡임 원천 제거
   stdio: "pipe", // 가상 입출력 파이프 스트림 장착
 });
