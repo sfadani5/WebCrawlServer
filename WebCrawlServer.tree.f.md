@@ -1,41 +1,101 @@
-AGENTS.md
-README.md
-docs/rule/R-00000 instructions.md
-docs/rule/R-00100 architecture.md
-docs/rule/R-00101 tech-stack.md
-docs/rule/R-00102 structure.md
-docs/rule/R-00103 workflow-management.md
-docs/rule/R-00104 versioning.md
-docs/rule/R-00105 communication.md
-docs/rule/R-00106 coding.md
-docs/rule/R-00107 security.md
-docs/rule/R-00108 testing.md
-docs/rule/R-00200 mcp.md
-docs/rule/R-00201 scheduler.md
-docs/rule/R-00202 monitoring.md
-docs/rule/R-00203 database.md
-docs/rule/R-00204 logging.md
-docs/rule/R-00205 auth.md
-docs/rule/R-00206 server-node-session-management.md
-docs/rule/R-00207 server-worker-engine-and-multi-db.md
-docs/rule/R-00208 local-file-storage-system.md
-docs/rule/R-00300 admin-guidelines.md
-docs/rule/R-00301 admin-development-guidelines.md
-docs/rule/R-00302 admin-ui-ux-guidelines.md
-docs/rule/R-00303 admin-node-monitoring.md
-docs/rule/R-00304 admin-worker-and-db-manager.md
-docs/rule/R-00400 plugin-guidelines.md
-docs/rule/R-00410 plugin-architecture.md
-docs/rule/R-00420 plugin-communication.md
-docs/rule/R-00430 plugin-crawling.md
-docs/rule/R-00440 plugin-ui-ux.md
-docs/rule/R-00450 plugin-build-env.md
-docs/rule/R-00460 plugin-manifest-permissions.md
-docs/rule/R-00470 plugin-sidepanel-offscreen.md
-docs/rule/R-00480 plugin-automation-crawling.md
-docs/rule/R-00490 plugin-github-integration.md
-docs/decision/admin UIUX.md
-docs/decision/ADR-001-plugin-sidepanel-offscreen-architecture.md
-docs/decision/ADR-002-extensible-packet-envelope-protocol.md
-docs/decision/ADR-003-background-fetch-scraping-and-github-sync.md
-docs/decision/ADR-004-dynamic-worker-multi-db-and-node-config.md
+eslint.config.mts
+package.json
+replit.nix
+tsconfig.base.json
+tsconfig.json
+admin/index.html
+admin/package.json
+admin/postcss.config.js
+admin/start.js
+admin/tailwind.config.js
+admin/tsconfig.json
+admin/vite.config.ts
+server/package.json
+server/tsconfig.json
+admin/public/site.webmanifest
+admin/src/App.tsx
+admin/src/index.css
+admin/src/main.tsx
+plugins/basic-plugin/offscreen.html
+plugins/basic-plugin/package.json
+plugins/basic-plugin/popup.html
+plugins/basic-plugin/sidepanel.html
+plugins/basic-plugin/tsconfig.json
+plugins/basic-plugin/vite.config.ts
+server/src/database.ts
+server/src/index.ts
+server/src/logger.ts
+tools/tests/ws-smoke.mjs
+admin/src/hooks/useAdminDbApi.ts
+admin/src/hooks/useAdminSocket.ts
+admin/src/services/apiService.ts
+admin/src/services/socketService.ts
+admin/src/types/index.ts
+plugins/basic-plugin/public/manifest.json
+plugins/basic-plugin/public/offscreen.html
+plugins/basic-plugin/public/sidepanel.html
+plugins/basic-plugin/src/background.ts
+plugins/basic-plugin/src/content.ts
+plugins/basic-plugin/src/offscreen.ts
+plugins/basic-plugin/src/popup.css
+plugins/basic-plugin/src/popup.tsx
+plugins/basic-plugin/src/sidepanel.tsx
+server/src/services/fileStorageService.ts
+server/src/services/workerEngineService.ts
+admin/node_modules/.vite/deps_temp_bec9c6b7/chunk-NEC722MK.js
+admin/node_modules/.vite/deps_temp_bec9c6b7/chunk-NEC722MK.js.map
+admin/node_modules/.vite/deps_temp_bec9c6b7/chunk-RI4H37KB.js
+admin/node_modules/.vite/deps_temp_bec9c6b7/chunk-RI4H37KB.js.map
+admin/node_modules/.vite/deps_temp_bec9c6b7/chunk-VUNV25KB.js
+admin/node_modules/.vite/deps_temp_bec9c6b7/chunk-VUNV25KB.js.map
+admin/node_modules/.vite/deps_temp_bec9c6b7/jszip.js
+admin/node_modules/.vite/deps_temp_bec9c6b7/jszip.js.map
+admin/node_modules/.vite/deps_temp_bec9c6b7/package.json
+admin/node_modules/.vite/deps_temp_bec9c6b7/react_jsx-dev-runtime.js
+admin/node_modules/.vite/deps_temp_bec9c6b7/react_jsx-dev-runtime.js.map
+admin/node_modules/.vite/deps_temp_bec9c6b7/react_jsx-runtime.js
+admin/node_modules/.vite/deps_temp_bec9c6b7/react_jsx-runtime.js.map
+admin/node_modules/.vite/deps_temp_bec9c6b7/react-dom_client.js
+admin/node_modules/.vite/deps_temp_bec9c6b7/react-dom_client.js.map
+admin/node_modules/.vite/deps_temp_bec9c6b7/react-dom.js
+admin/node_modules/.vite/deps_temp_bec9c6b7/react-dom.js.map
+admin/node_modules/.vite/deps_temp_bec9c6b7/react.js
+admin/node_modules/.vite/deps_temp_bec9c6b7/react.js.map
+admin/src/components/layout/Footer.tsx
+admin/src/components/layout/GcpMainLayout.tsx
+admin/src/components/layout/Header.tsx
+admin/src/components/layout/MainLayout.tsx
+admin/src/components/layout/Sidebar.tsx
+admin/src/components/metrics/MetricCardItem.tsx
+admin/src/components/metrics/MetricCardsGroup.tsx
+admin/src/components/modals/DomDataModal.tsx
+admin/src/components/modals/NodeConfigModal.tsx
+admin/src/components/tables/GcpClientsTable.tsx
+admin/src/components/views/ClientsView.tsx
+admin/src/components/views/ControlConsoleView.tsx
+admin/src/components/views/CrawlLogsView.tsx
+admin/src/components/views/FaviconGeneratorView.tsx
+admin/src/components/views/GcpClientsView.tsx
+admin/src/components/views/GcpControlConsoleView.tsx
+admin/src/components/views/GcpCrawlLogsView.tsx
+admin/src/components/views/NetworkMonitorView.tsx
+admin/src/components/views/WorkerManagerView.tsx
+plugins/basic-plugin/src/components/Footer.tsx
+plugins/basic-plugin/src/components/Header.tsx
+plugins/basic-plugin/src/components/TabBar.tsx
+plugins/basic-plugin/src/config/pluginConfig.ts
+plugins/basic-plugin/src/hooks/usePopupState.ts
+plugins/basic-plugin/src/services/backgroundScraper.ts
+plugins/basic-plugin/src/services/chromeService.ts
+plugins/basic-plugin/src/services/githubService.ts
+plugins/basic-plugin/src/types/env.d.ts
+plugins/basic-plugin/src/types/index.ts
+admin/src/components/layout/Breadcrumb/BreadcrumbBar.tsx
+admin/src/components/layout/Navbar/GlobalSearchBar.tsx
+admin/src/components/layout/Navbar/HeaderTools.tsx
+admin/src/components/layout/Navbar/ProjectSelector.tsx
+admin/src/components/layout/Navbar/TopBar.tsx
+admin/src/components/layout/Sidebar/Sidebar.tsx
+plugins/basic-plugin/src/components/tabs/BasicTab.tsx
+plugins/basic-plugin/src/components/tabs/DebugTab.tsx
+plugins/basic-plugin/src/components/tabs/InfoTab.tsx

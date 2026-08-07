@@ -89,7 +89,7 @@ declare const __SERVER_HOST__: string;
  * - 타입: `number`
  * - 단위: 포트 번호
  * - 빌드 주입 출처: `process.env.SERVER_PORT`
- * - 기본값: `9600`
+ * - 기본값: `9700`
  * - 활용 위치: `src/config/pluginConfig.ts`, `Footer.tsx` -> 하단 포트 번호 표출
  */
 declare const __SERVER_PORT__: number;

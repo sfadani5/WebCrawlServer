@@ -9,7 +9,7 @@ export const PLUGIN_CONFIG = {
     /** 백엔드 서버 호스트 (빌드 시점 주입) */
     host: typeof __SERVER_HOST__ !== "undefined" ? __SERVER_HOST__ : "localhost",
     /** 백엔드 서버 포트 번호 (빌드 시점 주입) */
-    port: typeof __SERVER_PORT__ !== "undefined" ? __SERVER_PORT__ : 9600,
+    port: typeof __SERVER_PORT__ !== "undefined" ? __SERVER_PORT__ : 9700,
   },
   popup: {
     /** 팝업 기본 가로 너비 (빌드 시점 주입) */
@@ -31,7 +31,7 @@ export const PLUGIN_CONFIG = {
  * 설정된 호스트와 포트로 오프스크린 웹소켓 접속 URL을 생성합니다.
  *
  * @param clientId - 수집 노드 고유 UUID
- * @returns 웹소켓 접속 URL (예: ws://localhost:9600?clientId=...&clientType=plugin)
+ * @returns 웹소켓 접속 URL (예: ws://localhost:9700?clientId=...&clientType=plugin)
  */
 export function getWebSocketUrl(clientId: string): string {
   const { host, port } = PLUGIN_CONFIG.server;

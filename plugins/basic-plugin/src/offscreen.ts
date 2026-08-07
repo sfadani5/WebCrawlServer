@@ -64,7 +64,7 @@ async function sendSidebarStatusToServer(isOpen: boolean): Promise<void> {
 }
 
 /**
- * 백엔드 포트(9600)와 24시간 무중단 단일 웹소켓 통신망을 수립합니다.
+ * 백엔드 포트(9700)와 24시간 무중단 단일 웹소켓 통신망을 수립합니다.
  * 연결 끊김 시 3초 주기로 자동 재연결을 시도합니다.
  */
 async function connectOffscreenSocket(): Promise<void> {

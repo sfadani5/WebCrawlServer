@@ -7,18 +7,24 @@
     "plugins/basic-plugin"
   ],
   "scripts": {
+    "preinstall": "npm config set workspaces true",
     "admin:dev": "npm run dev --workspace=admin",
-    "admin:start": "npx pm2 start admin/start.js --name WebCrawlAdmin",
+    "admin:start": "npm run build --workspace=admin && npx pm2 start admin/start.js --name WebCrawlAdmin",
     "admin:status": "npx pm2 show WebCrawlAdmin",
     "admin:logs": "npx pm2 logs WebCrawlAdmin --lines 100",
     "admin:stop": "npx pm2 delete WebCrawlAdmin",
     "plugin:basic:dev": "npm run dev --workspace=basic-plugin",
-    "server:start": "npx pm2 start server/dist/index.js --name WebCrawlServer",
+    "server:start": "npm run build --workspace=server && npx pm2 start server/dist/index.js --name WebCrawlServer",
     "server:status": "npx pm2 show WebCrawlServer",
     "server:logs": "npx pm2 logs WebCrawlServer --lines 100",
     "server:stop": "npx pm2 delete WebCrawlServer",
     "lint": "eslint .",
-    "clean-reset": "npx pm2 kill; Stop-Process -Name \"node\" -Force -ErrorAction SilentlyContinue; Get-ChildItem -Path . -Filter \"dist\" -Recurse -Directory | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue; Get-ChildItem -Path . -Filter \"node_modules\" -Recurse -Directory | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue; Remove-Item -Path .\\package-lock.json -Force -ErrorAction SilentlyContinue; npm install"
+    "clean:pm2": "npx pm2 delete WebCrawlServer || true && npx pm2 delete WebCrawlAdmin || true",
+    "clean:admin-modules": "rimraf admin/node_modules",
+    "clean:all": "npm run clean:pm2 && npm run clean:admin-modules && rimraf node_modules dist package-lock.json && npm ci",
+    "prebuild": "npm run clean:pm2 && npm run clean:admin-modules && npm ci",
+    "build:all": "npm run build --workspace=server && npm run build --workspace=admin && npm run build --workspace=basic-plugin",
+    "full:start": "npm run clean:pm2 && npm run preinstall && npm run build:all && npm run server:start && npm run admin:start"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.11",
@@ -36,6 +42,8 @@
     "postcss": "^8.5.1",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.2",
+    "rimraf": "^5.0.5",
+    "pm2": "^5.4.0",
     "typescript-eslint": "^8.22.0",
     "vite": "^5.4.14"
   },

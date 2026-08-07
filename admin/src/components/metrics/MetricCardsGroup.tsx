@@ -37,7 +37,7 @@ export function MetricCardsGroup({
       />
       <MetricCardItem
         title="NETWORK PORT BINDING"
-        value="Port 9600"
+        value={`Port ${process.env.SERVER_PORT || 9700}`}
         subValue="HTTP/WS Shared"
         valueColorClass="text-green-400"
       />

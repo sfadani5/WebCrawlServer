@@ -13,7 +13,7 @@ export default defineConfig({
   define: {
     // 서버 호스트/포트 빌드 타임 리터럴 상수 주입
     __SERVER_HOST__: JSON.stringify(process.env.SERVER_HOST || "localhost"),
-    __SERVER_PORT__: Number(process.env.SERVER_PORT || 9600),
+    __SERVER_PORT__: Number(process.env.SERVER_PORT || 9700),
   },
   build: {
     outDir: "dist",

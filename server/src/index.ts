@@ -241,9 +241,9 @@ app.get("/api/admin/network/health", (_req, res) => {
     const serverAddress = server.address();
     const portBound = serverAddress !== null;
     const port =
-      serverAddress && typeof serverAddress === "object"
-        ? serverAddress.port
-        : 9600;
+        typeof process.env.SERVER_PORT !== "undefined"
+          ? Number(process.env.SERVER_PORT)
+          : 9700;
 
     let walModeEnabled = false;
     try {
@@ -307,7 +307,7 @@ app.delete("/api/db/logs", (_req, res) => {
 
 /**
  * [REST API 8] 특정 클라이언트 차단 추방 (Purge)
- * DB 삭제 및 실시간 소켓 강제 종료를 동시에 단행합니다.
+ * 백엔드 포트(9700)와 24시간 무중단 단일 웹소켓 통신망을 수립합니다.
  */
 app.delete("/api/db/clients/:clientId", (req, res) => {
   try {
@@ -358,7 +358,6 @@ export function broadcastUpdatedToken(
 
   activeClients.forEach((client) => {
     if (
-      client.clientType === "plugin" &&
       client.socket.readyState === WebSocket.OPEN
     ) {
       client.socket.send(JSON.stringify(tokenPacket));
@@ -370,7 +369,7 @@ export function broadcastUpdatedToken(
 const wss = new WebSocketServer({ server });
 
 wss.on("connection", (ws: WebSocket, req: IncomingMessage) => {
-  const host = req.headers.host || "localhost:9600";
+  const host = req.headers.host || `localhost:${process.env.SERVER_PORT || 9700}`;
   const url = new URL(req.url || "", `http://${host}`);
 
   // 연결 파라미터 추출 및 유효성 검증
@@ -600,10 +599,10 @@ wss.on("connection", (ws: WebSocket, req: IncomingMessage) => {
   });
 });
 
-// 통합 백엔드 포트 9600으로 서버 가동
-server.listen(9600, () => {
-  logServerSystem("INFO", "통합 백엔드 포트 9600 정상 가동 완료");
+// 통합 백엔드 포트 ${process.env.SERVER_PORT || 9700}으로 서버 가동
+server.listen(Number(process.env.SERVER_PORT) || 9700, () => {
+  logServerSystem("INFO", `통합 백엔드 포트 ${process.env.SERVER_PORT || 9700} 정상 가동 완료`);
   console.log(
-    "[시스템] 통합 백엔드 API 및 데이터베이스 서비스 포트 9600 구동 중",
+    `[시스템] 통합 백엔드 API 및 데이터베이스 서비스 포트 ${process.env.SERVER_PORT || 9700} 구동 중`,
   );
 });

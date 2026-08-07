@@ -1,10 +1,10 @@
 import { WebSocketMessage } from '../types/index.js';
 
 /**
- * 포트 9600번 관로로 바인딩되는 어드민 전용 웹소켓 클라이언트 인스턴스를 생성 및 반환합니다.
+ * 백엔드 서버 포트(기본 9700)에 바인딩되는 어드민 전용 웹소켓 클라이언트 인스턴스를 생성 및 반환합니다.
  */
 export function createAdminSocket(): WebSocket {
-  const wsUrl = 'ws://localhost:9600?clientId=admin-main&clientType=admin';
+  const wsUrl = `ws://localhost:${process.env.SERVER_PORT || 9700}?clientId=admin-main&clientType=admin`;
   return new WebSocket(wsUrl);
 }
 
