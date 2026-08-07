@@ -26,7 +26,7 @@ export function GcpMainLayout({
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#141A23] text-slate-100 flex flex-col font-sans select-none">
+    <div className="min-h-screen bg-[#141A23] text-slate-100 flex flex-col font-sans ">
       <TopBar
         wsStatus={wsStatus}
         onToggleSidebar={() => setIsSidebarCollapsed((prev) => !prev)}

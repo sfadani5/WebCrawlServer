@@ -1,6 +1,6 @@
 export function GlobalSearchBar() {
   return (
-    <div className="hidden md:flex items-center flex-1 max-w-md mx-4 select-none">
+    <div className="hidden md:flex items-center flex-1 max-w-md mx-4">
       <div className="relative w-full">
         <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 text-sm">
           <span className="material-symbols-outlined">search</span>

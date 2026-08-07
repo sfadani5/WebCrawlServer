@@ -9,6 +9,7 @@ import { GcpControlConsoleView } from './components/views/GcpControlConsoleView.
 import { GcpCrawlLogsView } from './components/views/GcpCrawlLogsView.js';
 import { WorkerManagerView } from './components/views/WorkerManagerView.js';
 import { FaviconGeneratorView } from './components/views/FaviconGeneratorView.js';
+import { NetworkMonitorView } from './components/views/NetworkMonitorView.js';
 import { ActiveTab } from './types/index.js';
 
 /**
@@ -110,12 +111,17 @@ export default function App() {
         />
       )}
 
-      {/* [탭 4] 수집 로그 */}
+      {/* [탭 4] 네트워크 모니터링 */}
+      {activeTab === 'network' && (
+        <NetworkMonitorView onDispatch={dispatchCommand} clientCount={clients.length} />
+      )}
+
+      {/* [탭 5] 수집 로그 */}
       {activeTab === 'logs' && (
         <GcpCrawlLogsView logs={logs} onClearLogs={executeClearLogs} />
       )}
 
-      {/* [탭 5] 파비콘 생성기 */}
+      {/* [탭 6] 파비콘 생성기 */}
       {activeTab === 'favicon' && (
         <FaviconGeneratorView />
       )}

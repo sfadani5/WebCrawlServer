@@ -18,7 +18,7 @@ interface SidebarProps {
 
 /**
  * 좌측 네비게이션 사이드바 컴포넌트입니다.
- * 수집 노드 관리, 워커 & DB 매니저, 원격 지시 콘솔, 수집 로그 탭을 제공합니다.
+ * 수집 노드 관리, 워커 & DB 매니저, 원격 지시 콘솔, 네트워크 모니터링, 수집 로그 탭을 제공합니다.
  * 접기/펼치기 기능으로 화면 공간을 효율적으로 활용합니다.
  * Material Symbols Outlined 아이콘 및 GCP 다크 테마를 준수합니다.
  */
@@ -31,7 +31,7 @@ export function Sidebar({
 }: SidebarProps) {
   return (
     <aside
-      className={`bg-[#111827] border-r border-slate-800 flex flex-col justify-between transition-all duration-200 select-none shadow-sm ${
+      className={`bg-[#111827] border-r border-slate-800 flex flex-col justify-between transition-all duration-200 shadow-sm ${
         isCollapsed ? 'w-20' : 'w-64'
       }`}
     >
@@ -50,7 +50,6 @@ export function Sidebar({
           {!isCollapsed && (
             <div className="flex justify-between items-center w-full">
               <span>수집 노드 관리</span>
-              {/* 클라이언트 수 배지 */}
               <span className="bg-slate-900/70 text-slate-300 text-[10px] px-2 py-0.5 rounded-full border border-slate-800">
                 {clientCount}
               </span>
@@ -71,7 +70,7 @@ export function Sidebar({
           {!isCollapsed && <span>워커 &amp; DB 매니저</span>}
         </button>
 
-        {/* [3] 원격 지시 콘솔 탭 */}
+        {/* [3] 원격 제어 콘솔 탭 */}
         <button
           onClick={() => onSelectTab('console')}
           className={`flex items-center gap-3 px-4 py-3 text-sm font-medium transition ${
@@ -81,10 +80,23 @@ export function Sidebar({
           }`}
         >
           <span className="material-symbols-outlined">send_to_mobile</span>
-          {!isCollapsed && <span>원격 지시 콘솔</span>}
+          {!isCollapsed && <span>원격 제어 콘솔</span>}
         </button>
 
-        {/* [4] 수집 로그 탭 */}
+        {/* [4] 네트워크 모니터링 탭 - 신규 */}
+        <button
+          onClick={() => onSelectTab('network')}
+          className={`flex items-center gap-3 px-4 py-3 text-sm font-medium transition ${
+            activeTab === 'network'
+              ? 'bg-slate-800 text-[#1A73E8] border-l-4 border-[#1A73E8]'
+              : 'text-slate-300 hover:bg-slate-900'
+          }`}
+        >
+          <span className="material-symbols-outlined">cell_tower</span>
+          {!isCollapsed && <span>네트워크 모니터링</span>}
+        </button>
+
+        {/* [5] 실시간 수집 로그 탭 */}
         <button
           onClick={() => onSelectTab('logs')}
           className={`flex items-center gap-3 px-4 py-3 text-sm font-medium transition ${
@@ -94,7 +106,20 @@ export function Sidebar({
           }`}
         >
           <span className="material-symbols-outlined">article</span>
-          {!isCollapsed && <span>수집 로그</span>}
+          {!isCollapsed && <span>실시간 수집 로그</span>}
+        </button>
+
+        {/* [6] 파비콘 생성기 탭 */}
+        <button
+          onClick={() => onSelectTab('favicon')}
+          className={`flex items-center gap-3 px-4 py-3 text-sm font-medium transition ${
+            activeTab === 'favicon'
+              ? 'bg-slate-800 text-[#1A73E8] border-l-4 border-[#1A73E8]'
+              : 'text-slate-300 hover:bg-slate-900'
+          }`}
+        >
+          <span className="material-symbols-outlined">palette</span>
+          {!isCollapsed && <span>파비콘 생성기</span>}
         </button>
       </div>
 

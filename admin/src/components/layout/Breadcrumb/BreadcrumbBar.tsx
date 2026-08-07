@@ -7,20 +7,39 @@ interface BreadcrumbBarProps {
 }
 
 export function BreadcrumbBar({ activeTab, onRefresh, onClearLogs }: BreadcrumbBarProps) {
-  const getTabLabel = () => {
-    if (activeTab === 'clients') return '수집 노드 관리';
-    if (activeTab === 'console') return '원격 지시 콘솔';
-    return '수집 로그 확인';
+  const getBreadcrumbParts = () => {
+    const parts: {category: string; label: string}[] = [
+      { category: '관리자 대시보드', label: '수집 노드 관리' },
+      { category: '관리자 대시보드', label: '워커 & DB 매니저' },
+      { category: '관리자 대시보드', label: '원격 제어 콘솔' },
+      { category: '시스템 진단', label: '네트워크 모니터링' },
+      { category: '데이터 관리', label: '실시간 수집 로그' },
+      { category: '유틸리티', label: '파비콘 생성기' },
+    ];
+    
+    const indexMap: Record<ActiveTab, number> = {
+      clients: 0,
+      workers: 1,
+      console: 2,
+      network: 3,
+      logs: 4,
+      favicon: 5,
+    };
+    
+    const index = indexMap[activeTab] ?? 0;
+    return parts[index];
   };
 
+  const parts = getBreadcrumbParts();
+
   return (
-    <div className="h-12 bg-[#161C27] border-b border-slate-800 px-5 flex items-center justify-between text-sm text-slate-200 select-none shadow-sm">
+    <div className="h-12 bg-[#161C27] border-b border-slate-800 px-5 flex items-center justify-between text-sm text-slate-200 shadow-sm">
       <div className="flex items-center gap-2 font-medium">
         <span className="text-slate-500">WebCrawlServer</span>
         <span className="text-slate-300">›</span>
-        <span className="text-slate-500">관리자 대시보드</span>
+        <span className="text-slate-500">{parts.category}</span>
         <span className="text-slate-300">›</span>
-        <span className="text-[#1A73E8] font-semibold">{getTabLabel()}</span>
+        <span className="text-[#1A73E8] font-semibold">{parts.label}</span>
       </div>
       <div className="flex items-center gap-2">
         <button

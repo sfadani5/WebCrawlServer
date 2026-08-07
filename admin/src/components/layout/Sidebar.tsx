@@ -17,7 +17,7 @@ export function Sidebar({
 }: SidebarProps) {
   return (
     <aside
-      className={`bg-gray-900 border-r border-gray-800 flex flex-col justify-between transition-all duration-200 select-none ${
+      className={`bg-gray-900 border-r border-gray-800 flex flex-col justify-between transition-all duration-200 ${
         isCollapsed ? 'w-16' : 'w-60'
       }`}
     >

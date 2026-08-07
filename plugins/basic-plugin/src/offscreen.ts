@@ -13,17 +13,32 @@ let socket: WebSocket | null = null;
 
 /**
  * 크롬 로컬 스토리지에서 수집 노드 고유 UUID를 인출합니다.
- * 미발급 상태일 경우 신규 UUID를 생성하여 저장합니다.
+ * chrome.storage 미지원 환경 및 초기화 미완료 시 localStorage Fallback을 제공합니다.
  *
  * @returns 클라이언트 고유 UUID 문자열
  */
 async function getOrCreateClientId(): Promise<string> {
-  const result = await chrome.storage.local.get(["clientId"]);
-  if (result && typeof result.clientId === "string") return result.clientId;
-  // 신규 UUID 생성 및 영구 저장
-  const generatedId = crypto.randomUUID();
-  await chrome.storage.local.set({ clientId: generatedId });
-  return generatedId;
+  try {
+    // 1. chrome.storage.local 존재 여부 안전 검사 (Null Guard)
+    if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
+      const result = await chrome.storage.local.get(["clientId"]);
+      if (result && typeof result.clientId === "string") return result.clientId;
+      
+      const generatedId = crypto.randomUUID();
+      await chrome.storage.local.set({ clientId: generatedId });
+      return generatedId;
+    }
+  } catch {
+    // 스토리지 API 예외 발생 시 하단 Fallback으로 진행
+  }
+
+  // 2. Fallback: 브라우저 기본 localStorage 사용 (안전성 확보)
+  let localId = localStorage.getItem("clientId");
+  if (!localId) {
+    localId = crypto.randomUUID();
+    localStorage.setItem("clientId", localId);
+  }
+  return localId;
 }
 
 /**
@@ -53,7 +68,6 @@ async function sendSidebarStatusToServer(isOpen: boolean): Promise<void> {
  * 연결 끊김 시 3초 주기로 자동 재연결을 시도합니다.
  */
 async function connectOffscreenSocket(): Promise<void> {
-  // 이미 연결 중이거나 접속 시도 중일 경우 중복 시도 방지
   if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) return;
 
   const clientId = await getOrCreateClientId();
@@ -61,7 +75,6 @@ async function connectOffscreenSocket(): Promise<void> {
   socket = new WebSocket(wsUrl);
 
   socket.onopen = () => {
-    // 연결 성공 시 초기 안착 패킷 전송
     const helloPacket: WebSocketPacket = {
       senderId: clientId,
       targetId: "SERVER",
@@ -77,15 +90,19 @@ async function connectOffscreenSocket(): Promise<void> {
     try {
       const packet: WebSocketPacket = JSON.parse(event.data);
 
-      // 1. 서버 푸시 인증 토큰 갱신 수용 (ADR-003 깃허브 토큰 동기화)
+      // 서버 푸시 인증 토큰 갱신 수용 (방어 코드 포함)
       if (packet.action === "UPDATE_AUTH_TOKEN" && packet.payload) {
         const { tokenType, token } = packet.payload as { tokenType: string; token: string };
-        await chrome.storage.local.set({ [tokenType]: token });
+        if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
+          await chrome.storage.local.set({ [tokenType]: token });
+        } else {
+          localStorage.setItem(tokenType, token);
+        }
       }
 
-      // 2. 수신 패킷 크롬 내부 중계 (catch() 예외 가드: 사이드바 미오픈 시 유실 방어)
+      // 수신 패킷 크롬 내부 중계 (catch() 예외 가드: 사이드바 미오픈 시 유실 방어)
       chrome.runtime.sendMessage({ type: "SOCKET_PACKET_RECEIVED", packet }).catch(() => {
-        // 사이드바 미오픈 상태에서의 sendMessage 실패는 정상 동작 - 무시
+        // 사이드바 미오픈 상태에서의 sendMessage 실패는 정상 동작
       });
     } catch {
       // 패킷 파싱 예외 가드
@@ -94,7 +111,6 @@ async function connectOffscreenSocket(): Promise<void> {
 
   socket.onclose = () => {
     socket = null;
-    // 3초 주기 자동 재연결
     setTimeout(connectOffscreenSocket, 3000);
   };
 
@@ -105,14 +121,11 @@ async function connectOffscreenSocket(): Promise<void> {
 
 /**
  * 크롬 포트 연결 기반 사이드바 창 닫힘 100% 감지 리스너
- * sidepanel.tsx에서 chrome.runtime.connect({ name: "sidepanel-port" })로 연결
  */
 chrome.runtime.onConnect.addListener((port) => {
   if (port.name === "sidepanel-port") {
-    // 사이드바 열림 알림
     sendSidebarStatusToServer(true);
 
-    // 포트 연결 끊김(창 닫힘) 시 닫힘 알림
     port.onDisconnect.addListener(() => {
       sendSidebarStatusToServer(false);
     });
@@ -120,10 +133,9 @@ chrome.runtime.onConnect.addListener((port) => {
 });
 
 /**
- * 크롬 내부 메시지 수신기 (백그라운드 및 사이드바로부터의 요청 처리)
+ * 크롬 내부 메시지 수신기
  */
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  // [1] 소켓 연결 상태 질의
   if (message.type === "GET_SOCKET_STATUS") {
     getOrCreateClientId().then((clientId) => {
       try {
@@ -133,17 +145,15 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
           port: PLUGIN_CONFIG.server.port,
         });
       } catch {
-        // 수신 채널 이미 파괴된 경우 방어
+        // 채널 파괴 방어
       }
     });
-    return true; // 비동기 응답을 위해 true 반환
+    return true;
   }
 
-  // [2] 패킷 송출 요청 (사이드바/콘텐츠 스크립트 → 오프스크린 → 서버)
   if (message.type === "SEND_SOCKET_PACKET" && message.packet) {
     getOrCreateClientId().then((clientId) => {
       if (socket && socket.readyState === WebSocket.OPEN) {
-        // 완전한 패킷 봉투 구조로 조립
         const fullPacket: WebSocketPacket = {
           senderId: clientId,
           targetId: message.packet.targetId || "SERVER",
@@ -156,19 +166,18 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         try {
           sendResponse({ success: true });
         } catch {
-          // 채널 닫힘 방어
+          // 채널 파괴 방어
         }
       } else {
-        // 소켓 미연결 시 재연결 시도 후 실패 응답
         connectOffscreenSocket();
         try {
           sendResponse({ success: false, reason: "SOCKET_OFFLINE" });
         } catch {
-          // 채널 닫힘 방어
+          // 채널 파괴 방어
         }
       }
     });
-    return true; // 비동기 응답을 위해 true 반환
+    return true;
   }
 
   return false;

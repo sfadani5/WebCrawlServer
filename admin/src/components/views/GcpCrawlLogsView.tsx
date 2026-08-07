@@ -21,7 +21,7 @@ export function GcpCrawlLogsView({ logs, onClearLogs }: GcpCrawlLogsViewProps) {
           전체 로그 삭제
         </button>
       </div>
-      <div className="flex flex-col gap-3 overflow-y-auto max-h-[640px] font-mono text-sm text-slate-200 select-text">
+      <div className="flex flex-col gap-3 overflow-y-auto max-h-[640px] font-mono text-sm text-slate-200">
         {logs.length === 0 ? (
           <div className="text-center text-slate-500 py-20">
             수집 로그가 없습니다.

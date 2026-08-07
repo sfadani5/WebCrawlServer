@@ -54,7 +54,7 @@ export function GcpClientsTable({
   };
 
   return (
-    <div className="bg-[#202124] border border-gray-800 rounded shadow-sm overflow-hidden select-text">
+    <div className="bg-[#202124] border border-gray-800 rounded shadow-sm overflow-hidden">
       {/* 테이블 헤더 바 */}
       <div className="px-4 py-3 border-b border-gray-800 flex justify-between items-center bg-[#28292c]">
         <span className="font-bold text-xs text-gray-200 tracking-wide uppercase">
@@ -118,7 +118,7 @@ export function GcpClientsTable({
                   </td>
 
                   {/* 3대 실시간 노드 상태 배지 (오프라인 / 백그라운드 가동 / 사이드바 활성) */}
-                  <td className="p-3 font-sans select-none">
+                  <td className="p-3 font-sans">
                     {isOnline ? (
                       isSidebarOpen ? (
                         // 온라인 + 사이드바 활성 상태 (파란색 배지)

@@ -11,7 +11,7 @@ interface TopBarProps {
 
 export function TopBar({ wsStatus, onToggleSidebar, onRefresh }: TopBarProps) {
   return (
-    <header className="h-14 bg-[#0F172A] text-white flex items-center justify-between px-4 select-none shadow-sm z-50">
+    <header className="h-14 bg-[#0F172A] text-white flex items-center justify-between px-4 shadow-sm z-50">
       <div className="flex items-center gap-3">
         <button
           onClick={onToggleSidebar}

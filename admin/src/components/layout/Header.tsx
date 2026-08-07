@@ -7,7 +7,7 @@ interface HeaderProps {
 
 export function Header({ wsStatus, onRefresh }: HeaderProps) {
   return (
-    <header className="h-14 bg-gray-900 border-b border-gray-800 px-4 flex items-center justify-between select-none">
+    <header className="h-14 bg-gray-900 border-b border-gray-800 px-4 flex items-center justify-between">
       <div className="flex items-center gap-3">
         <div className="bg-blue-600 text-white font-black text-xs px-2 py-1 rounded tracking-wider">
           GCP STYLE

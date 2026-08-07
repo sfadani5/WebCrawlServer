@@ -15,7 +15,7 @@ export function ClientsView({ clients, onSelectTarget, onPurgeClient }: ClientsV
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {clients.map((c) => (
           <div key={c.client_id} className="bg-gray-900 p-4 rounded-lg border border-gray-800 flex flex-col gap-3">
-            <div className="text-xs text-gray-400 font-mono truncate select-text">
+            <div className="text-xs text-gray-400 font-mono truncate">
               ID: {c.client_id}
             </div>
             <div className="flex justify-between text-xs text-gray-300">

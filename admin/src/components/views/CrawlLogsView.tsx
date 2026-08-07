@@ -19,7 +19,7 @@ export function CrawlLogsView({ logs, onClearLogs }: CrawlLogsViewProps) {
           데이터베이스 로그 일괄 소거
         </button>
       </div>
-      <div className="flex flex-col gap-2 overflow-y-auto max-h-[600px] font-mono text-xs select-text">
+      <div className="flex flex-col gap-2 overflow-y-auto max-h-[600px] font-mono text-xs">
         {logs.map((log) => (
           <div
             key={log.id}
@@ -29,7 +29,7 @@ export function CrawlLogsView({ logs, onClearLogs }: CrawlLogsViewProps) {
               <span className="truncate max-w-[300px]">출처: {log.client_id}</span>
               <span>시각: {new Date(log.timestamp).toLocaleTimeString()}</span>
             </div>
-            <div className="text-yellow-100 break-all select-text mt-1">
+            <div className="text-yellow-100 break-all mt-1">
               {log.log_message}
             </div>
           </div>

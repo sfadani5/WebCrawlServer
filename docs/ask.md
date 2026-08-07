@@ -1,57 +1,133 @@
 # 작업 요청서 (docs/ask.md)
 
-> **요청일**: 2026-08-05  
-> **요청자**: 사용자  
-> **대상 프로젝트**: WebCrawlServer 모노레포 (백엔드, 관리자 UI, 브라우저 플러그인)  
+# [PART 1] Admin 대시보드 종합 개선 목록 및 아키텍처 설계
+
+## 1. 네비게이션 & 브레드크럼 체계 일치화
+* **현재 문제점:** 브레드크럼(`BreadcrumbBar.tsx`)의 명칭(`WebCrawlServer › 관리자 대시보드 › 수집 로그 확인`)과 사이드바 메뉴명(`실시간 수집 로그`), 그리고 실제 탭 상태(`logs`) 간의 이름이 1:1로 매칭되지 않아 혼선을 줌.
+* **개선 방식:**
+  * 사이드바 메뉴명, 브레드크럼 경로, 탭 상태(`ActiveTab`) 명칭을 **1:1 완전 동기화**.
+  * 브레드크럼 구조를 `WebCrawlServer › [카테고리명] › [현재 메뉴명]` 체계로 규격화.
+  * **메뉴 카테고리 재구성:**
+    1. **수집 노드 관리** (`clients`)
+    2. **워커 & DB 매니저** (`workers`)
+    3. **원격 제어 콘솔** (`console`)
+    4. **네트워크 모니터링** (`network`) - *[신규]*
+    5. **실시간 수집 로그** (`logs`)
+    6. **유틸리티 도구** (`favicon`)
 
 ---
 
-## 1. 개요 및 요구사항 배경
-
-현재 `WebCrawlServer` 프로젝트 운영 및 테스트 중 다음과 같은 문제점이 발견되었으며, 시스템을 엔터프라이즈급 크롤링 오케스트레이터로 고도화하기 위한 대규모 아키텍처 개정이 필요합니다.
-
-1. **관리자 UI의 과거 오프라인 노드 누적 표출 및 노드 식별 문제**:
-   - 오페라 브라우저 플러그인 1개만 설치하여 사용 중임에도 과거 연결 이력들이 오프라인 상태로 목록에 계속 누적되어 시각적 혼란을 야기함.
-   - 실제 서버와 실시간 통신 중인 노드만 깔끔하게 필터링하여 보고, 난해한 UUID 대신 한글 별칭(`alias`)과 노드별 환경설정 모달(`[환경설정 ⚙️]`)을 제공해야 함.
-2. **동적 수집 워커(Worker) 빌더 & 멀티 DB 구조 도입**:
-   - Admin UI에서 수집 워커를 코딩 없이 동적 빌드하고, 워커 전용 독립 DB(`databases/workers/worker_<name>.db`) 및 스키마 테이블, 디폴트 물리 저장 경로를 설정할 수 있어야 함.
-3. **대용량 HTML/바이너리 물리 파일 분리 저장소**:
-   - 무거운 HTML 원본 소스(`outerHTML`)나 바이너리 파일을 SQLite DB 칼럼에 적재 시 DB 폭증 및 쿼리 저하가 발생하므로, 물리 디스크(`STORAGE_ROOT_PATH\<domain>\<db_id>\index.html`)로 분리 저장하고 DB에는 경로만 보관.
-4. **팝업 UI의 한계 및 사이드바(Side Panel) 단일 UI 전환**:
-   - 기존 360x480 팝업 UI는 웹사이트를 클릭하면 바로 닫혀버리는 문제가 있음.
-   - 아이콘 클릭 시 브라우저 옆에 상시 고정되는 사이드바 대시보드가 열리도록 통합하여 수집 모니터링, 다중 포스팅, 깃허브 연동을 한곳에서 처리하고 싶음.
-5. **Chrome MV3 30초 Sleep 제약 극복 (24시간 무중단 연결)**:
-   - 서비스 워커가 30초 후 재워지는 문제를 해결하기 위해 오프스크린 문서(`offscreen.ts`)를 도입하여 24시간 끊기지 않는 단일 웹소켓 통신망 구축 필요.
-6. **고속 백그라운드 수집 및 다중 포스팅 자동화**:
-   - 유저 활성 탭을 직접 이동시키면 브라우저가 과부하되므로, 탭 전환 없이 백그라운드 `fetch()` + `DOMParser` 인출 및 선언형 페이징 순차 이동 수집 구현.
-   - 사이드바 하나에서 페이스북, 트위터, 핀터레스트, 블로그로 글을 자동 작성/포스팅하는 멀티 채널 포스팅 구현.
-7. **깃허브(GitHub) 자동 커밋/푸시 및 토큰 동기화**:
-   - 수집된 데이터를 내 깃허브 저장소로 자동 커밋/푸시하고, 서버에서 토큰 변경 시 웹소켓 푸시로 모든 프로필 플러그인의 토큰을 동기화.
+## 2. [신규] 네트워크 모니터링 메뉴 (`NetworkMonitorView`) 구축
+* **목적:** 백엔드 서버(포트 9600), 수집 노드(플러그인) 간의 실시간 네트워크 상태 진단, 소켓 Ping/Pong 레이턴시 측정, REST API 헬스체크 및 터미널 스타일 CLI 콘솔 제공.
+* **화면 레이아웃 상단 (진단 명령어 버튼 패널):**
+  * `[서버 HTTP/WS 헬스체크]`: 포트 9600 바인딩 상태 및 HTTP 응답 속도(ms) 측정.
+  * `[전체 노드 소켓 핑(Ping) 테스트]`: 활성화된 모든 웹소켓 노드로 `PING_TEST` 패킷을 송출하고 각 노드별 왕복 지연 시간(RTT) 측정.
+  * `[REST API 응답 속도 진단]`: `/api/db/clients`, `/api/db/logs` 엔드포인트 쿼리 응답 시간 검사.
+  * `[소켓 트래픽 대역폭 검사]`: 현재 수신된 패킷 량 및 초당 데이터 수송률 계산.
+* **화면 레이아웃 하단 (터미널 스타일 콘솔 출력 창):**
+  * 다크 터미널 디자인 (`bg-black`, `font-mono`, `text-green-400`).
+  * 상단 버튼 클릭 시 실행 결과가 타임스탬프와 함께 표준 출력(stdout) 형태로 한 줄씩 출력되는 스크롤 창.
+  * 직접 명령어를 입력하여 진단할 수 있는 CLI 입력 줄 (`> ping node_id`, `> health`, `> clear` 등).
+  * `[콘솔 소거]`, `[로그 복사]`, `[자동 스크롤 고정]` 보조 툴바 제공.
 
 ---
 
-## 2. 세부 통합 요구사항 목록
+## 3. 전체적 대시보드 추가 개선 사항
+* **실시간 메트릭 모니터링 강화:** 상단 카드에 **네트워크 지연 시간(Latency)** 및 **초당 수신 패킷 수(PPS)** 지표 추가.
+* **네트워크 진단 REST API & 소켓 핸들러 추가:** 백엔드(`server/src/index.ts`)에 `/api/admin/network/health` 엔드포인트 및 `PING_TEST` / `PONG_RESPONSE` 소켓 패킷 라우팅 단행.
+* **접근성 및 선택성 완벽 보장:** 모든 신규 뷰에서 텍스트 선택이 가능한 `select-text` 기본 적용.
 
-### ① 백엔드 서버 (`server/`)
-- [x] `clients` 테이블 스키마 확장 (`alias`, `assigned_worker_id`, `custom_storage_path`).
-- [x] `workers` 테이블 신설 (동적 워커 정의, `databases/workers/` DB 매핑, `schema_json`).
-- [x] `fileStorageService.ts` 분리 저장소 구현 (`STORAGE_ROOT_PATH\<domain>\<db_id>\index.html`).
-- [x] `GET /api/db/clients?onlineOnly=true` 및 `PUT /api/db/clients/:clientId/config` API 구현.
-- [x] `POST /api/admin/workers` (동적 워커 & 타깃 DB 동적 생성 API) 구현.
-- [x] `CLIENT_STATUS_UPDATE` 수용 및 `UPDATE_AUTH_TOKEN` 브로드캐스트 구현.
+---
 
-### ② 관리자 대시보드 (`admin/`)
-- [x] [수집 노드 관리] 테이블 상단에 `온라인만 보기(기본값)` / `전체 보기` / `오프라인만` 필터 토글 스위치 추가.
-- [x] 노드 ID 옆 한글 별칭 표출 및 `[환경설정 ⚙️]` 모달 팝업 구현.
-- [x] 노드 상태 배지 세분화: `● 온라인 (사이드바 활성 🖥️)`, `● 온라인 (백그라운드 가동 🌙)`, `○ 연결 끊김 (과거 이력)`.
-- [x] 오프라인 노드 일괄 정화(Purge Offline) 조치 버튼 제공.
-- [x] [수집 워커 빌더 & 멀티 DB 매니저] (`WorkerManagerView.tsx`) 뷰 신설.
+# [PART 2] AI 실행 지침 문서 (Prompt Document)
 
-### ③ 브라우저 확장 플러그인 (`plugins/basic-plugin/`)
-- [x] `manifest.json`: 36종 풀 권한 유지 + `"sidePanel"`, `"offscreen"`, `"management"` 추가, `"side_panel"` 경로 지정, `"default_popup"` 완전히 제거.
-- [x] `background.ts`: `openPanelOnActionClick: true` 지정으로 아이콘 클릭 시 사이드바 즉시 실행, `ensureOffscreenDocument()`로 오프스크린 자동 생성/유지.
-- [x] `offscreen.ts`: 프로필당 단 1개의 웹소켓(9600 포트) 단독 소유 및 24시간 무중단 연결, 확장형 패킷 봉투(`WebSocketPacket<T>`) 처리.
-- [x] `sidepanel.tsx`: 기존 팝업 컴포넌트 100% 흡수 통합, 사이드바 열림/닫힘 상태 오프스크린으로 송출, 탭 스위칭(`기본`, `정보`, `디버깅`, `포스팅`, `깃허브`).
-- [x] `content.ts`: 선언형 페이징 순차 이동 수집 엔진(`runPaginationCrawlEngine`) 및 자동 포스팅 지원.
-- [x] `services/githubService.ts`: 깃허브 REST API `PUT /repos/{owner}/{repo}/contents/{path}` 파일 자동 커밋/푸시.
-- [x] `vite.config.ts`: `sidepanel`, `offscreen`, `background`, `content` 다중 엔트리 번들링 설정.
+
+---
+
+```markdown
+# [개발 지침서] Admin 네비게이션 체계 개편 및 네트워크 모니터링 콘솔 구축
+
+## 1. 개요 및 작업 목표
+본 작업은 WebCrawlServer 관리자 대시보드(`admin/`)의 네비게이션/브레드크럼 명칭 불일치 문제를 해결하고, 백엔드 서버 및 수집 노드 간의 네트워크 진단 및 터미널 CLI 콘솔을 제공하는 **[네트워크 모니터링] 신규 메뉴**를 구축하는 것을 목표로 합니다.
+
+---
+
+## 2. 작업 규칙 및 원칙 (필수 준수)
+1. **언어 규칙**: 답변, 코드 주석, UI 라벨은 모두 **한글로만 작성**합니다.
+2. **소스 코드 헤더 필수**: 수정되거나 생성되는 모든 소스 코드(.ts, .tsx 등) 최상단 1열에는 상대 파일 경로 주석을 명시합니다. (예: `// admin/src/components/views/NetworkMonitorView.tsx`)
+3. **ESM 모듈 규격**: 모든 코드는 ESM(`import`/`export`)을 사용합니다.
+4. **텍스트 선택성 보장**: 뷰 컴포넌트 본문 및 터미널 콘솔 영역에 `select-text`를 적용하여 마우스 드래그 선택을 허용합니다.
+
+---
+
+## 3. 세부 개발 단계 및 사양
+
+### 단계 1: 타입 및 탭 상태 확장 (`admin/src/types/index.ts`)
+- `ActiveTab` 유니온 타입에 `'network'` 항목 추가:
+  `export type ActiveTab = "clients" | "workers" | "console" | "network" | "logs" | "favicon";`
+- 네트워크 진단 결과 및 터미널 콘솔 로그 인터페이스 정의:
+  ```typescript
+  export interface TerminalLogEntry {
+    id: string;
+    timestamp: string;
+    type: 'info' | 'success' | 'warning' | 'error' | 'cmd';
+    text: string;
+  }
+  ```
+
+---
+
+### 단계 2: 네비게이션 & 브레드크럼 동기화 리팩토링
+1. **`admin/src/components/layout/Sidebar/Sidebar.tsx`**:
+   - 메뉴 구성 및 순서 조정:
+     1) 수집 노드 관리 (`clients`)
+     2) 워커 & DB 매니저 (`workers`)
+     3) 원격 제어 콘솔 (`console`)
+     4) 네트워크 모니터링 (`network`) - *[신규 아이콘: `cell_tower` 또는 `lan`]*
+     5) 수집 로그 (`logs`)
+     6) 파비콘 생성기 (`favicon`)
+2. **`admin/src/components/layout/Breadcrumb/BreadcrumbBar.tsx`**:
+   - `activeTab`에 따른 브레드크럼 라벨을 1:1 완전 매칭하도록 수정:
+     - `clients`: `WebCrawlServer › 관리자 대시보드 › 수집 노드 관리`
+     - `workers`: `WebCrawlServer › 관리자 대시보드 › 워커 & DB 매니저`
+     - `console`: `WebCrawlServer › 관리자 대시보드 › 원격 제어 콘솔`
+     - `network`: `WebCrawlServer › 시스템 진단 › 네트워크 모니터링`
+     - `logs`: `WebCrawlServer › 데이터 관리 › 실시간 수집 로그`
+     - `favicon`: `WebCrawlServer › 유틸리티 › 파비콘 생성기`
+
+---
+
+### 단계 3: 백엔드 네트워크 진단 기능 연동 (`server/src/index.ts`)
+1. **REST API 추가**: `GET /api/admin/network/health`
+   - 서버 업타임, 포트 9600 바인딩 상태, DB WAL 모드 가동 상태, 메모리 사용량 반환.
+2. **WebSocket 소켓 라우팅 확장**:
+   - `PING_TEST` 액션 수신 시, 타깃 클라이언트(또는 전체 노드)로 `PING_TEST`를 릴레이하고 수신 클라이언트가 `PONG_RESPONSE`를 응답하도록 라우팅.
+
+---
+
+### 단계 4: [신규] 네트워크 모니터링 뷰 개발 (`admin/src/components/views/NetworkMonitorView.tsx`)
+1. **상단 진단 버튼 패널**:
+   - `[서버 HTTP/WS 헬스체크]`: `/api/admin/network/health` 호출 및 지연시간 측정 후 콘솔에 출력.
+   - `[전체 노드 핑(Ping) 테스트]`: 웹소켓을 통해 전체 노드로 `PING_TEST` 전송 및 응답 콘솔 출력.
+   - `[REST API 응답 속도 검사]`: 주요 REST API 엔드포인트 호출 및 응답속도(ms) 측정 결과 출력.
+   - `[소켓 세션 가동률 검사]`: 현재 연결된 활성 노드 수 및 세션 유지 상태 모니터링 출력.
+2. **하단 터미널 콘솔 컴포넌트**:
+   - 검은색 배경 (`bg-[#0D1117]`), 고정폭 폰트 (`font-mono text-xs`), 초록/파랑/빨강 상태별 컬러링 (`text-emerald-400`, `text-sky-400`, `text-rose-400`).
+   - 콘솔 출력창 내부 텍스트 선택 가능 (`select-text`).
+   - 수동 프롬프트 입력줄 지원 (`> ping <clientId>`, `> health`, `> clear`, `> help`).
+   - 상단 보조 버튼: `[콘솔 소거]`, `[로그 클립보드 복사]`, `[자동 스크롤 고정 토글]`.
+
+---
+
+### 단계 5: 최상위 App 조율 및 빌드 검증 (`admin/src/App.tsx`)
+- `App.tsx`에서 `activeTab === 'network'` 처리 구문 및 신규 `NetworkMonitorView` 마운트.
+- `npm run build --workspace=admin` 실행 후 오류 없이 정상 컴파일되는지 검증.
+
+---
+
+## 4. 검증 체크리스트
+- [ ] 사이드바 메뉴 클릭 시 브레드크럼의 라벨이 사이드바 메뉴명과 1:1로 일치하는가?
+- [ ] [네트워크 모니터링] 탭 진입 시 상단 진단 버튼들이 정상 작동하고 하단 터미널 콘솔에 결과가 출력되는가?
+- [ ] 터미널 프롬프트에 `help`, `clear`, `health` 등의 명령어 입력 시 콘솔이 즉시 반응하는가?
+- [ ] 터미널 콘솔 내의 텍스트가 마우스 드래그로 복사(`select-text`)되는가?
+```

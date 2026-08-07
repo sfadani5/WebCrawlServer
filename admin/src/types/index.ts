@@ -94,7 +94,61 @@ export interface WebSocketMessage<T = unknown> {
 export type ConnectionStatus = "CONNECTED" | "DISCONNECTED";
 
 /** 대시보드 활성 메인 탭 타입 */
-export type ActiveTab = "clients" | "console" | "logs" | "favicon" | "workers";
+export type ActiveTab = "clients" | "workers" | "console" | "network" | "logs" | "favicon";
 
 /** 노드 리스트 출력 필터 모드 타입 */
 export type NodeStatusFilter = "ONLINE" | "ALL" | "OFFLINE";
+
+/** 네트워크 진단 터미널 콘솔 로그 엔트리 구조체 */
+export interface TerminalLogEntry {
+  /** 로그 고유 ID */
+  id: string;
+  /** 로그 생성 타임스탬프 (ISO 문자열) */
+  timestamp: string;
+  /** 로그 타입 (정보, 성공, 경고, 오류, 명령어) */
+  type: "info" | "success" | "warning" | "error" | "cmd";
+  /** 로그 메시지 본문 */
+  text: string;
+}
+
+/** 네트워크 헬스체크 응답 구조체 */
+export interface NetworkHealthResponse {
+  /** 서버 포트 바인딩 상태 */
+  portBound: boolean;
+  /** 포트 번호 */
+  port: number;
+  /** 서버 업타임 여부 */
+  uptime: boolean;
+  /** 서버 시작 시각 */
+  startedAt: string;
+  /** DB WAL 모드 상태 */
+  walModeEnabled: boolean;
+  /** 메모리 사용량 (MB) */
+  memoryUsage: number;
+  /** 응답 지연 시간 (ms) */
+  responseTime: number;
+}
+
+/** Ping 테스트 결과 구조체 */
+export interface PingTestResult {
+  /** 테스트 대상 노드 ID */
+  clientId: string;
+  /** 왕복 지연 시간 (ms) */
+  rtt: number;
+  /** 테스트 성공 여부 */
+  success: boolean;
+  /** 테스트 타임스탬프 */
+  timestamp: number;
+}
+
+/** API 응답 속도 진단 결과 구조체 */
+export interface ApiSpeedTestResult {
+  /** 엔드포인트 URL */
+  endpoint: string;
+  /** 응답 시간 (ms) */
+  responseTime: number;
+  /** 응답 성공 여부 */
+  success: boolean;
+  /** 테스트 타임스탬프 */
+  timestamp: number;
+}

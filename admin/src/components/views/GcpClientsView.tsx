@@ -94,7 +94,7 @@ export function GcpClientsView({
       <MetricCardsGroup clientCount={onlineCount} logCount={logCount} />
 
       {/* 노드 출력 필터 스위치 툴바 */}
-      <div className="flex flex-col sm:flex-row justify-between items-center bg-[#202124] p-3 rounded border border-gray-800 gap-3 shadow-sm select-none">
+      <div className="flex flex-col sm:flex-row justify-between items-center bg-[#202124] p-3 rounded border border-gray-800 gap-3 shadow-sm">
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider">
             노드 출력 필터:

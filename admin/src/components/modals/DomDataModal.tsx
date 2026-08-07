@@ -31,10 +31,10 @@ export function DomDataModal({ isOpen, clientId, log, onClose }: DomDataModalPro
   const fullDomText = parsedPayload.fullDom || JSON.stringify(parsedPayload, null, 2);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 select-text">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
       <div className="bg-[#1E293B] border border-slate-700 rounded-xl shadow-2xl w-full max-w-5xl max-h-[85vh] flex flex-col overflow-hidden">
         {/* 모달 헤더 */}
-        <div className="px-6 py-4 bg-[#111827] border-b border-slate-800 flex justify-between items-center select-none">
+        <div className="px-6 py-4 bg-[#111827] border-b border-slate-800 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-blue-400">code_blocks</span>
             <h3 className="font-bold text-sm text-slate-100">
@@ -82,7 +82,7 @@ export function DomDataModal({ isOpen, clientId, log, onClose }: DomDataModalPro
           </div>
 
           <div>
-            <div className="flex justify-between items-center mb-2 select-none">
+            <div className="flex justify-between items-center mb-2">
               <span className="font-bold text-slate-300 text-xs">페이지 전체 DOM 원본 (HTML Source)</span>
               <button
                 onClick={() => navigator.clipboard.writeText(fullDomText)}
@@ -92,14 +92,14 @@ export function DomDataModal({ isOpen, clientId, log, onClose }: DomDataModalPro
                 클립보드 복사
               </button>
             </div>
-            <pre className="bg-[#0F172A] p-4 rounded-lg border border-slate-800 font-mono text-[11px] text-slate-200 overflow-x-auto max-h-[400px] whitespace-pre-wrap break-all select-text leading-relaxed">
+            <pre className="bg-[#0F172A] p-4 rounded-lg border border-slate-800 font-mono text-[11px] text-slate-200 overflow-x-auto max-h-[400px] whitespace-pre-wrap break-all leading-relaxed">
               {fullDomText}
             </pre>
           </div>
         </div>
 
         {/* 모달 푸터 */}
-        <div className="px-6 py-3 bg-[#111827] border-t border-slate-800 flex justify-end select-none">
+        <div className="px-6 py-3 bg-[#111827] border-t border-slate-800 flex justify-end">
           <button
             onClick={onClose}
             className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-4 py-2 rounded-lg transition"

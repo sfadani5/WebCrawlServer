@@ -95,7 +95,7 @@ export function WorkerManagerView({ workers, onCreateWorker }: WorkerManagerView
   };
 
   return (
-    <div className="flex flex-col gap-6 select-none font-sans">
+    <div className="flex flex-col gap-6 font-sans">
 
       {/* 1. 가동 중인 워커 현황 테이블 */}
       <div className="bg-[#202124] border border-gray-800 rounded shadow-sm overflow-hidden">

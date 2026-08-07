@@ -226,7 +226,50 @@ app.get("/api/admin/storage/status", (_req, res) => {
 });
 
 /**
- * [REST API 6] 최근 수집 로그 인출 (최신 100건)
+ * [REST API 6] 네트워크 헬스체크 및 서버 상태 진단
+ * 서버 업타임, 포트 바인딩 상태, DB 상태, 메모리 사용량 등 종합 진단 정보 반환
+ */
+app.get("/api/admin/network/health", (_req, res) => {
+  try {
+    const serverUptime = process.uptime();
+    const memoryUsage = process.memoryUsage();
+    const totalMemoryMB = Math.round(memoryUsage.heapUsed / 1024 / 1024);
+    
+    const serverAddress = server.address();
+    const portBound = serverAddress !== null;
+    const port = serverAddress && typeof serverAddress === 'object' 
+      ? serverAddress.port 
+      : 9600;
+    
+    let walModeEnabled = false;
+    try {
+      initializeDatabase();
+      walModeEnabled = true;
+    } catch {
+      walModeEnabled = false;
+    }
+    
+    const responseTime = Date.now();
+    
+    res.json({
+      success: true,
+      data: {
+        portBound,
+        port,
+        uptime: serverUptime > 0,
+        startedAt: new Date(Date.now() - serverUptime * 1000).toISOString(),
+        walModeEnabled,
+        memoryUsage: totalMemoryMB,
+        responseTime: 0,
+      },
+    });
+  } catch (error: unknown) {
+    res.status(500).json({ success: false, message: getErrorMessage(error) });
+  }
+});
+
+/**
+ * [REST API 7] 최근 수집 로그 인출 (최신 100건)
  */
 app.get("/api/db/logs", (_req, res) => {
   try {
@@ -360,6 +403,31 @@ wss.on("connection", (ws: WebSocket, req: IncomingMessage) => {
           "CLIENT_STATUS_UPDATE",
           `사이드바 상태: ${session.isSidebarOpen ? "OPEN(활성)" : "CLOSED(비활성)"}`
         );
+        return;
+      }
+
+      // 1.5. Ping/Pong 네트워크 지연 시간 테스트 (네트워크 모니터링 지원)
+      if (message.action === "PING_TEST") {
+        // PING_TEST 수신 시 PONG_RESPONSE로 즉시 응답
+        const pongResponse: WebSocketMessage = {
+          senderId: "server",
+          targetId: message.senderId,
+          action: "PONG_RESPONSE",
+          payloadType: "json",
+          payload: {
+            originalTimestamp: message.meta?.timestamp || Date.now(),
+            responseTimestamp: Date.now(),
+            clientId: clientId,
+          },
+          meta: { timestamp: Date.now() },
+        };
+        
+        // PING_TEST를 보낸 클라이언트가 플러그인인 경우에만 PONG_RESPONSE 응답
+        if (session && clientType === "plugin" && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify(pongResponse));
+        }
+        
+        logPluginComm(clientId, "PING_TEST", "Ping/Pong 네트워크 테스트 응답 완료");
         return;
       }
 

@@ -7,7 +7,7 @@ interface HeaderToolsProps {
 
 export function HeaderTools({ wsStatus, onRefresh }: HeaderToolsProps) {
   return (
-    <div className="flex items-center gap-2 select-none">
+    <div className="flex items-center gap-2">
       <div className="flex items-center gap-2 bg-slate-900/70 px-3 py-2 rounded border border-slate-700 text-sm text-white">
         <span
           className={`h-2.5 w-2.5 rounded-full ${

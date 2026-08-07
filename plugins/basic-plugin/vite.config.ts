@@ -6,8 +6,7 @@ import { resolve } from "node:path";
 
 /**
  * 브라우저 확장 플러그인 Vite 번들링 설정입니다.
- * 다중 엔트리 포인트(sidepanel, offscreen, background, content)를 개별 JS 파일로 번들링합니다.
- * R-00450: Vite define 기반 빌드 타임 상수 주입 및 다중 엔트리 지침 준수
+ * HTML 엔트리 포인트(sidepanel, offscreen)를 루트로 이관하여 Vite가 TSX/TS 파일을 JS로 정상 치환하도록 합니다.
  */
 export default defineConfig({
   plugins: [react()],
@@ -21,17 +20,13 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        // 사이드바 UI 엔트리 (사용자 대화 화면)
-        sidepanel: resolve(__dirname, "public/sidepanel.html"),
-        // 오프스크린 24시간 무중단 웹소켓 엔진 엔트리
-        offscreen: resolve(__dirname, "public/offscreen.html"),
-        // 백그라운드 서비스 워커 엔트리
+        // 프로젝트 루트의 HTML 엔트리 지정 (Vite HTML 번들링 변환 단행)
+        sidepanel: resolve(__dirname, "sidepanel.html"),
+        offscreen: resolve(__dirname, "offscreen.html"),
         background: resolve(__dirname, "src/background.ts"),
-        // 콘텐츠 스크립트 엔트리 (DOM 수집 및 지시 수신)
         content: resolve(__dirname, "src/content.ts"),
       },
       output: {
-        // 청크 파일명 포맷 규칙 (크롬 확장 manifest.json 참조 일치)
         entryFileNames: "[name].js",
         chunkFileNames: "[name].js",
         assetFileNames: "[name].[ext]",

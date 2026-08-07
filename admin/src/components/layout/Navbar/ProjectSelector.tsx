@@ -5,7 +5,7 @@ export function ProjectSelector() {
   const [selectedProject, setSelectedProject] = useState('Default-Crawler-Cluster');
 
   return (
-    <div className="relative select-none">
+    <div className="relative">
       <button
         onClick={() => setIsOpen((prev) => !prev)}
         className="flex items-center gap-2 bg-slate-900/70 hover:bg-slate-800 px-3 py-1 rounded text-xs text-white border border-slate-700 transition"
