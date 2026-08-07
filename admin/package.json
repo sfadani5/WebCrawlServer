@@ -9,7 +9,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "start": "node start.js",
-    "admin:start": "mkdir -p ../logs && nohup npm run dev -- --host 127.0.0.1 --port 5173 --strictPort > ../logs/admin.log 2>&1 & echo admin-started",
+    "admin:start": "node start.js",
     "server:start": "node -e \"console.log('server:start skipped in admin workspace')\""
   },
   "dependencies": {

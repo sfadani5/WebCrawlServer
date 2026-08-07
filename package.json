@@ -8,6 +8,8 @@
   ],
   "scripts": {
     "preinstall": "node -e \"console.log('workspace install hook completed')\"",
+    "server:start": "npm run --workspace=server server:start",
+    "admin:start": "npm run --workspace=admin admin:start",
     "admin:dev": "npm run dev --workspace=admin",
     "admin:status": "npx --yes pm2 show WebCrawlAdmin",
     "admin:logs": "npx --yes pm2 logs WebCrawlAdmin --lines 100",
