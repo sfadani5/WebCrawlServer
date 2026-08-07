@@ -56,7 +56,7 @@ plugins/basic-plugin/
 │   │   └── index.ts             # 확장형 패킷 봉투(WebSocketPacket<T>) 타입 정의
 │   ├── services/
 │   │   ├── chromeService.ts     # 크롬 API 및 오프스크린 상태 질의 모듈
-│   │   ├── githubService.ts     # 깃허브 REST API 커밋/푸시 모듈
+│   │   ├── githubService.ts     # 깃허브 REST API 커밋/푸시 모듈 (보류: 백로그 항목)
 │   │   └── backgroundScraper.ts # 백그라운드 fetch() + DOMParser 인출 모듈
 │   ├── hooks/
 │   │   └── usePopupState.ts     # 사이드바 UI용 공통 비즈니스 로직 훅

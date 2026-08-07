@@ -1,5 +1,7 @@
 # Merged: WebCrawlServer
 
+> **참고(보류)**: 이 병합 문서에 포함된 `Git`/`GitHub` 관련 내용은 문서 보관 목적이며, 자동화 구현 우선순위에서는 제외됩니다.
+
 > 생성일시: 2026-08-07 14:04:13
 > 원본: WebCrawlServer.tree.f.md
 > 성공: 80

@@ -1,5 +1,7 @@
 # ADR-003: 백그라운드 fetch() 초고속 수집 및 깃허브 실시간 토큰 동기화 패턴 채택
 
+> **주의(깃허브 통합 보류)**: 본 ADR에서 언급된 `깃허브(GitHub)` 관련 자동 커밋/푸시 및 일부 연동 시나리오는 현재 우선순위에서 제외됩니다. 토큰 동기화(인증 정보 갱신) 자체는 시스템의 인증 관리 관점에서 논의하되, 깃허브 API를 통한 자동 커밋/퍼시스트(Commit/Push) 기능 구현은 백로그로 이동합니다.
+
 > **상태**: 승인됨 (Accepted)  
 > **날짜**: 2026-08-05  
 > **결정자**: 시스템 아키텍트 & 개발 팀  
@@ -48,7 +50,7 @@
    - 오프스크린/사이드바에서 `fetch(url, { credentials: "include" })`를 호출하여 이미지/CSS가 배제된 순수 HTML을 고속 인출.
    - `new DOMParser().parseFromString(htmlText, "text/html")`을 통해 가상 DOM을 생성하여 데이터만 정제 후 서버로 전송.
 2. **토큰 실시간 이중 동기화(Dual-Sync) 패턴**:
-   - **사이드바 로컬 사용**: `chrome.storage.local`에 보관된 토큰으로 깃허브 REST API(`https://api.github.com/repos/...`) 다이렉트 고속 커밋/푸시.
+   - **사이드바 로컬 사용**: `chrome.storage.local`에 보관된 토큰을 우선 사용하여 서비스 API 호출(예: SNS 인증 토큰 활용)하도록 권장합니다. **깃허브 REST API를 통한 자동 커밋/푸시는 현재 보류**되어 있으며, 자동 커밋/푸시를 전제로 한 설계는 지양합니다.
    - **서버 푸시 동기화**: 백엔드에서 토큰 변경 발생 시 웹소켓 브로드캐스트(`UPDATE_AUTH_TOKEN`)를 송출하여 모든 프로필 노드의 로컬 스토리지 토큰을 자동으로 갱신.
 
 ---
@@ -61,6 +63,7 @@
 - **다중 프로필 토큰 일괄 관리**: 깃허브 토큰 변경 시 서버에서 푸시 한 번으로 모든 프로필 사이드바의 토큰이 자동 최신화.
 
 ### 적용 위치:
-- `plugins/basic-plugin/src/services/githubService.ts`
 - `plugins/basic-plugin/src/offscreen.ts`
 - `plugins/basic-plugin/src/content.ts`
+
+> 참고: `plugins/basic-plugin/src/services/githubService.ts`는 깃허브 자동 커밋/푸시용 모듈로 문서화되어 있으나 **현재 보류(백로그)** 상태입니다. 구현 재개 시 별도 ADR/이슈에서 재검토하여 우선순위를 재조정하십시오.

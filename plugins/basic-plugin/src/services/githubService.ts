@@ -1,4 +1,7 @@
 // plugins/basic-plugin/src/services/githubService.ts
+// NOTE (보류): 이 파일의 깃허브 자동 커밋/푸시 기능은 현재 우선순위에서 제외되어
+// 있습니다. 구현 내용은 문서상으로 보관하되, 실제 배포/자동화 작업으로 즉시 사용하지
+// 않도록 백로그(Deferred)로 표기합니다.
 
 /** GitHub 파일 커밋 옵션 구조체 */
 export interface CommitFileOptions {
@@ -122,7 +125,7 @@ export async function triggerGithubWorkflow(
   owner: string,
   repo: string,
   workflowId: string,
-  ref: string = "main"
+  ref: string = "main",
 ): Promise<boolean> {
   try {
     const url = `https://api.github.com/repos/${owner}/${repo}/actions/workflows/${workflowId}/dispatches`;

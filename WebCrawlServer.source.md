@@ -1,5 +1,7 @@
 # Merged: WebCrawlServer
 
+> **참고(보류)**: 통합 문서 내의 `Git`/`GitHub` 관련 섹션은 현재 자동화 우선순위에서 제외되어 있습니다. 해당 항목은 백로그로 관리됩니다.
+
 ## eslint.config.mts
 
 ```mts

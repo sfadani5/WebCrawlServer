@@ -48,7 +48,7 @@
 | **R-00460** | `docs/rule/R-00460 plugin-manifest-permissions.md` | Manifest V3, 권한 관리 및 JSON 주석 금지 지침 |
 | **R-00470** | `docs/rule/R-00470 plugin-sidepanel-offscreen.md` | 사이드바 통합 UI & 오프스크린 무중단 아키텍처 지침 |
 | **R-00480** | `docs/rule/R-00480 plugin-automation-crawling.md` | 백그라운드 경량 수집 및 다중 포스팅 지침 |
-| **R-00490** | `docs/rule/R-00490 plugin-github-integration.md` | 깃허브 REST API 연동 및 토큰 동기화 지침 |
+| **R-00490** | `docs/rule/R-00490 plugin-github-integration.md` | 깃허브 REST API 연동 및 토큰 동기화 지침 (보류) |
 
 ---
 

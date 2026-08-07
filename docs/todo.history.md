@@ -26,7 +26,7 @@
 **플러그인 아키텍처 이관 (`plugins/basic-plugin/`)**
 - `src/types/index.ts` (신규): `WebSocketPacket`, `PayloadType`, `BrowserInfo`, `ProcessorInfo` 등 플러그인 전용 타입
 - `src/config/pluginConfig.ts`: `popup.*` 설정 복원, `server.*` 빌드 타임 주입 지원
-- `src/services/githubService.ts` (신규): GitHub REST API 커밋/워크플로 연동
+-- `src/services/githubService.ts` (보류): GitHub REST API 커밋/워크플로 연동 (백로그)
 - `src/services/backgroundScraper.ts` (신규): 백그라운드 fetch + DOMParser 스크래핑
 - `src/services/chromeService.ts`: `SEND_SOCKET_PACKET` 메시지 방식으로 전환
 - `src/offscreen.ts` (신규): 24시간 무중단 단일 소켓 소유자, 크롬 포트 생명주기 감지
@@ -36,11 +36,12 @@
 - `public/manifest.json`: `sidePanel`, `offscreen` 권한 추가, 팝업 제거, 아이콘 action 구조 변경
 - `public/sidepanel.html` (신규): 사이드바 HTML 엔트리
 - `public/offscreen.html` (신규): 오프스크린 엔진 HTML 엔트리
+
 - `vite.config.ts`: 다중 엔트리(sidepanel, offscreen, background, content) 빌드 설정
 
 **환경 및 검증**
 - Python3 Nix 시스템 의존성 설치 (`better-sqlite3` 빌드 환경 해결)
 - `@types/chrome` 패키지 설치 (플러그인 타입 안전성 확보)
 - `tsconfig.json` 수정: `"types": ["chrome"]` 추가
-- `server`, `admin`, `plugins/basic-plugin` 전체 `tsc --noEmit` 오류 없음 확인
-- Git 커밋 및 원격 저장소 푸시 완료
+-- `server`, `admin`, `plugins/basic-plugin` 전체 `tsc --noEmit` 오류 없음 확인
+-- Git 관련 자동화(커밋/원격 푸시) 작업은 보류 처리됨 (백로그)

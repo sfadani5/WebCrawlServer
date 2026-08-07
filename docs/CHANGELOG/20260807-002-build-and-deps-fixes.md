@@ -26,5 +26,5 @@
 ---
 
 ## 권장 후속 작업
-- CI 환경(혹은 배포 서버)에서 동일한 의존성/빌드 스텝을 재현하도록 `README` 또는 CI 설정(`.github/workflows` 등)에 빌드 스크립트 추가 권장
+- CI 환경(혹은 배포 서버)에서 동일한 의존성/빌드 스텝을 재현하도록 `README` 또는 CI 설정(예: `.github/workflows`)에 빌드 스크립트 추가 **권장(백로그)** — 현재는 깃허브 기반 CI 설정을 최우선으로 강제하지 않음.
 - `package.json` 의존성 목록과 workspace 사용 정책을 검토하여 devDependencies의 일관성 확보 권장

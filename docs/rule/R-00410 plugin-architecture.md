@@ -23,7 +23,7 @@ plugins/basic-plugin/src/
 │   └── index.ts             # WebSocketPacket<T> 및 파일/메타 타입 명세
 ├── services/                # 순수 통신 및 크롬/외부 API I/O 계층
 │   ├── chromeService.ts     # 크롬 API 및 오프스크린 상태 질의
-│   ├── githubService.ts     # 깃허브 REST API 커밋/푸시 서비스
+│   ├── githubService.ts     # 깃허브 REST API 커밋/푸시 서비스 (보류: 백로그 항목)
 │   └── backgroundScraper.ts # 백그라운드 fetch() + DOMParser 인출 모듈
 ├── hooks/                   # 비즈니스 로직 및 React 상태 관리 훅 계층
 │   └── usePopupState.ts     # 사이드바 UI용 상태 및 비즈니스 콜백 캡슐화
